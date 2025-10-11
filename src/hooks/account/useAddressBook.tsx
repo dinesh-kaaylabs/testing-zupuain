@@ -41,7 +41,34 @@ const VALIDATORS: Record<string, (v: any) => string> = {
   pincode: (v: string) => !v?.trim() ? 'PIN code is required' : !/^\d{5,6}$/.test(v.trim()) ? 'Invalid PIN code' : '',
 };
 
-export const useAddressBook = () => {
+interface UseAddressBookReturn {
+  addresses: Address[];
+  selectedAddress: Address | null;
+  defaultAddress: Address | null;
+  formData: AddressFormData;
+  errors: Partial<Record<keyof AddressFormData, string>>;
+  isEditing: boolean;
+  loading: boolean;
+  showForm: boolean;
+  editingAddress: Address | null;
+  fetchAddresses: () => Promise<void>;
+  selectAddress: (address: Address | null) => void;
+  startEditing: (address?: Address) => void;
+  cancelEditing: () => void;
+  updateField: (field: keyof AddressFormData, value: string | boolean) => void;
+  saveAddress: () => Promise<boolean>;
+  deleteAddress: (addressId: string) => Promise<boolean>;
+  setAsDefault: (addressId: string) => Promise<boolean>;
+  openForm: (address?: Address) => void;
+  closeForm: () => void;
+  handleEdit: (address?: Address) => void;
+  handleDelete: (addressId: string) => Promise<void>;
+  handleSetDefault: (addressId: string) => Promise<void>;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
+  hasAddresses: boolean;
+}
+
+export const useAddressBook = (): UseAddressBookReturn => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { addresses, loading } = useAppSelector((state) => state.address);

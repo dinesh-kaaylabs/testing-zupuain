@@ -35,7 +35,41 @@ const SORT_FNS = {
   amount_desc: (a: OrderListItem, b: OrderListItem) => b.total_price - a.total_price,
 };
 
-export const useOrderHistory = () => {
+interface OrderStatistics {
+  totalOrders: number;
+  totalSpent: number;
+  averageOrderValue: number;
+}
+
+interface UseOrderHistoryReturn {
+  orders: OrderListItem[];
+  filteredOrders: OrderListItem[];
+  selectedOrder: OrderListItem | null;
+  orderDetails: any;
+  loading: boolean;
+  error: string | null;
+  filters: OrderFilters;
+  currentPage: number;
+  totalPages: number;
+  showFilters: boolean;
+  sortBy: 'date' | 'amount' | 'status';
+  sortOrder: 'asc' | 'desc';
+  fetchOrders: (page?: number) => Promise<void>;
+  fetchOrderDetails: (orderUid: string) => Promise<void>;
+  updateFilters: (newFilters: Partial<OrderFilters>) => void;
+  clearFilters: () => void;
+  selectOrder: (order: OrderListItem | null) => void;
+  changePage: (page: number) => void;
+  toggleFilters: () => void;
+  handleSortChange: (field: 'date' | 'amount' | 'status') => void;
+  toggleSortOrder: () => void;
+  handleViewDetails: (order: OrderListItem) => void;
+  handleReorder: (order: OrderListItem) => void;
+  hasOrders: boolean;
+  orderStatistics: OrderStatistics;
+}
+
+export const useOrderHistory = (): UseOrderHistoryReturn => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const orderState = useAppSelector((state) => state.order);

@@ -31,7 +31,22 @@ const DEFAULT_SETTINGS: AccountSettingsData = {
   preferences: { language: 'en', theme: 'system', itemsPerPage: 12 },
 };
 
-export const useAccountSettings = () => {
+interface UseAccountSettingsReturn {
+  settings: AccountSettingsData;
+  loading: boolean;
+  hasChanges: boolean;
+  updateSetting: <T extends keyof AccountSettingsData>(
+    category: T,
+    key: keyof AccountSettingsData[T],
+    value: any
+  ) => void;
+  saveSettings: () => Promise<boolean>;
+  resetSettings: () => void;
+  toggleTwoFactor: () => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+}
+
+export const useAccountSettings = (): UseAccountSettingsReturn => {
   const { user } = useAppSelector((state) => state.auth);
   const { success, error } = useToast();
   

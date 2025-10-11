@@ -17,7 +17,23 @@ const VALIDATORS = {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export const useAccountProfile = () => {
+interface UseAccountProfileReturn {
+  profileData: ProfileFormData;
+  errors: Partial<Record<keyof ProfileFormData, string>>;
+  loading: boolean;
+  hasChanges: boolean;
+  isEditing: boolean;
+  profileImage: string | null;
+  isUploading: boolean;
+  updateField: (field: keyof ProfileFormData, value: string) => void;
+  saveProfile: () => Promise<boolean>;
+  resetForm: () => void;
+  startEditing: () => void;
+  cancelEditing: () => void;
+  handleImageUpload: (file: File) => Promise<void>;
+}
+
+export const useAccountProfile = (): UseAccountProfileReturn => {
   const { user, loading: authLoading } = useAppSelector((state) => state.auth);
   const { success, error } = useToast();
   

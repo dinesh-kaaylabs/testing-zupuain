@@ -8,7 +8,23 @@ import { formatCurrency } from '../../utils/currencyFormatter';
 
 const COMPLETED_STATUSES = ['delivered', 'cancelled'];
 
-export const useDashboard = () => {
+interface DashboardStats {
+  totalOrders: number;
+  totalSpent: number;
+  savedAddresses: number;
+  wishlistItems: number;
+}
+
+interface UseDashboardReturn {
+  stats: DashboardStats;
+  recentOrders: any[];
+  pendingOrdersCount: number;
+  loading: boolean;
+  hasDefaultAddress: boolean;
+  fetchDashboardData: () => void;
+}
+
+export const useDashboard = (): UseDashboardReturn => {
   const dispatch = useAppDispatch();
   const { orders, totalOrderCount, main } = useAppSelector((state) => state.order);
   const { addresses } = useAppSelector((state) => state.address);
