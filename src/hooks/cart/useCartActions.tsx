@@ -20,8 +20,9 @@ export const useCartActions = (): UseCartActionsReturn => {
       await dispatch(addToCart(createCartItem(product, displayData, quantity || displayData.minOrderQuantity))).unwrap();
       success('Product added to cart!');
       return true;
-    } catch (err: any) {
-      error(err?.message || 'Failed to add product to cart');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add product to cart';
+      error(errorMessage);
       return false;
     }
   }, [dispatch, success, error]);
@@ -33,8 +34,9 @@ export const useCartActions = (): UseCartActionsReturn => {
       await dispatch(action({ product_uid: productUid, bag_detail_id: bagDetailId })).unwrap();
       if (msg) success(msg);
       return true;
-    } catch (err: any) {
-      error(err?.message || 'Failed to update cart');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update cart';
+      error(errorMessage);
       return false;
     }
   }, [dispatch, success, error]);

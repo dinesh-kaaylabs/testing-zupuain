@@ -6,8 +6,8 @@ import { AsyncThunk } from '@reduxjs/toolkit';
 
 interface UseProductDataParams {
   selector: (state: RootState) => { products: Product[]; loading: boolean; error: string | null };
-  action: AsyncThunk<Product[], Record<string, any>, any>;
-  fetchParams: Record<string, any>;
+  action: AsyncThunk<Product[], Record<string, string | number | boolean>, { rejectValue: string }>;
+  fetchParams: Record<string, string | number | boolean>;
 }
 
 interface UseProductDataReturn {

@@ -89,8 +89,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
     if (!user) return;
     try {
       await dispatch(fetchUserAddresses()).unwrap();
-    } catch (err: any) {
-      error(err || 'Failed to fetch addresses');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      error(errorMessage || 'Failed to fetch addresses');
     }
   }, [user, dispatch, error]);
 
@@ -102,8 +103,11 @@ export const useAddressBook = (): UseAddressBookReturn => {
   const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof AddressFormData, string>> = {};
     Object.keys(VALIDATORS).forEach(field => {
-      const err = VALIDATORS[field]?.(formData[field as keyof AddressFormData]);
-      if (err) newErrors[field as keyof AddressFormData] = err;
+      const value = formData[field as keyof AddressFormData];
+      if (value !== undefined) {
+        const err = VALIDATORS[field]?.(value);
+        if (err) newErrors[field as keyof AddressFormData] = err;
+      }
     });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -154,8 +158,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
         success('Address added');
       }
       closeForm();
-    } catch (err: any) {
-      error(err || 'Failed to save address');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      error(errorMessage || 'Failed to save address');
     }
   }, [formData, editingId, validateForm, dispatch, success, error, closeForm]);
 
@@ -174,8 +179,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
       try {
         await dispatch(deleteAddressAction(addressId)).unwrap();
         success('Address deleted');
-      } catch (err: any) {
-        error(err || 'Failed to delete address');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        error(errorMessage || 'Failed to delete address');
       }
     }
   }, [addresses, dispatch, success, error]);
@@ -184,8 +190,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
     try {
       await dispatch(setDefaultAddressAction(addressId)).unwrap();
       success('Default address updated');
-    } catch (err: any) {
-      error(err || 'Failed to update default address');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      error(errorMessage || 'Failed to update default address');
     }
   }, [dispatch, success, error]);
 
@@ -223,8 +230,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
         }
         closeForm();
         return true;
-      } catch (err: any) {
-        error(err || 'Failed to save address');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        error(errorMessage || 'Failed to save address');
         return false;
       }
     },
@@ -238,8 +246,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
         await dispatch(deleteAddressAction(addressId)).unwrap();
         success('Address deleted');
         return true;
-      } catch (err: any) {
-        error(err || 'Failed to delete address');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        error(errorMessage || 'Failed to delete address');
         return false;
       }
     },
@@ -248,8 +257,9 @@ export const useAddressBook = (): UseAddressBookReturn => {
         await dispatch(setDefaultAddressAction(addressId)).unwrap();
         success('Default address updated');
         return true;
-      } catch (err: any) {
-        error(err || 'Failed to update default address');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        error(errorMessage || 'Failed to update default address');
         return false;
       }
     },

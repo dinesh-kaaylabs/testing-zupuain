@@ -103,8 +103,9 @@ export const useAccountProfile = (): UseAccountProfileReturn => {
       setIsEditing(false);
       success('Profile updated successfully');
       return true;
-    } catch (err: any) {
-      error(err.message || 'Failed to update profile');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      error(errorMessage);
       return false;
     } finally {
       setLoading(false);
@@ -128,8 +129,9 @@ export const useAccountProfile = (): UseAccountProfileReturn => {
       setProfileImage(imageUrl);
       // TODO: Upload to server - await userApi.uploadProfileImage(file);
       success('Profile image updated');
-    } catch (err: any) {
-      error(err.message || 'Failed to upload image');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
+      error(errorMessage);
     } finally {
       setIsUploading(false);
     }

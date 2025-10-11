@@ -30,8 +30,9 @@ export const useGuestCartSync = (): UseGuestCartSyncReturn => {
       } else if (syncGuestCart.rejected.match(result)) {
         errorToast((result.payload as string) || 'Failed to sync guest cart');
       }
-    } catch (err: any) {
-      errorToast(err?.message || 'Failed to sync cart.');
+    } catch (err) {
+      const error = err as Error;
+      errorToast(error?.message || 'Failed to sync cart.');
     }
   }, [dispatch, guestItems, defaultStore?.store_uid, hasGuestItems, guestItemCount, success, errorToast]);
   return { syncGuestCart: syncGuestCartItems, hasGuestItems, guestItemCount };

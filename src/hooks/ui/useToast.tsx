@@ -19,7 +19,7 @@ interface UseToastReturn {
     messages: {
       loading: string;
       success: string | ((data: T) => string);
-      error: string | ((error: any) => string);
+      error: string | ((error: Error) => string);
     },
     options?: CustomToastOptions
   ) => Promise<T>;
@@ -27,7 +27,7 @@ interface UseToastReturn {
 }
 
 export const useToast = (): UseToastReturn => {
-  const createCustomToast = (variant: any, message: string, options?: CustomToastOptions) => 
+  const createCustomToast = (variant: typeof TOAST_VARIANTS.warning | typeof TOAST_VARIANTS.info, message: string, options?: CustomToastOptions) => 
     toast(message, { ...variant, ...options, style: { ...variant.style, ...options?.style } });
 
   return {
@@ -39,7 +39,7 @@ export const useToast = (): UseToastReturn => {
     info: (message: string, options?: CustomToastOptions) => createCustomToast(TOAST_VARIANTS.info, message, options),
     dismiss: (toastId?: string) => toast.dismiss(toastId),
     dismissAll: () => toast.dismiss(),
-    promise: <T,>(promise: Promise<T>, messages: { loading: string; success: string | ((data: T) => string); error: string | ((error: any) => string); }, options?: CustomToastOptions) => toast.promise(promise, messages, options),
+    promise: <T,>(promise: Promise<T>, messages: { loading: string; success: string | ((data: T) => string); error: string | ((error: Error) => string); }, options?: CustomToastOptions) => toast.promise(promise, messages, options),
     colors: TOAST_COLORS,
   };
 };

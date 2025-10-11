@@ -11,7 +11,8 @@ import { useCoupon } from './useCoupon';
 import { usePricing } from './usePricing';
 import { useDerivedCartItems } from '../../utils/cartDataHelpers';
 import { decodeOrderDataFromUrl } from '../../utils/orderUtils';
-import { DecodedOrderData } from '../../types/api';
+import { DecodedOrderData, BagDetail, CartItem, Coupon } from '../../types/api';
+import { CouponDiscountResult } from '../../utils/couponUtils';
 
 export type CheckoutStep = 'address' | 'delivery' | 'payment' | 'review' | 'confirmation';
 
@@ -56,11 +57,33 @@ interface UseCheckoutReturn {
   refreshPaymentMethods: () => void;
 
   // Cart & Pricing state
-  cartItems: any[];
-  pricing: any;
-  pricingSummary: any;
-  appliedCoupon: any;
-  appliedDiscount: any;
+  cartItems: (BagDetail | CartItem)[];
+  pricing: {
+    subtotal: number;
+    deliveryCharge: number;
+    baseDeliveryCharge: number;
+    deliveryDiscount: number;
+    productDiscount: number;
+    discount: number;
+    tax: number;
+    codCharge: number;
+    total: number;
+    isFreeDelivery: boolean;
+  };
+  pricingSummary: {
+    subtotal: string;
+    deliveryCharge: string;
+    baseDeliveryCharge: string;
+    deliveryDiscount: string;
+    productDiscount: string;
+    discount: string;
+    tax: string;
+    codCharge: string;
+    total: string;
+    savings: string;
+  };
+  appliedCoupon: Coupon | null;
+  appliedDiscount: CouponDiscountResult | null;
   handleApplyCoupon: (code: string) => Promise<boolean>;
   handleRemoveCoupon: () => void;
   formatCurrency: (amount: number) => string;
@@ -357,8 +380,8 @@ export const useCheckout = (): UseCheckoutReturn => {
       } else {
         throw new Error('Order creation failed');
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || error || 'Failed to place order. Please try again.';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error) || 'Failed to place order. Please try again.';
       setOrderError(errorMessage);
       showError(errorMessage);
     } finally {

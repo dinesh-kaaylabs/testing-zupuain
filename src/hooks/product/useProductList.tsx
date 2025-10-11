@@ -16,6 +16,7 @@ import {
 } from '../../store/slices/productSlice';
 import { useDebounce } from '../utils/useDebounce';
 import { DEFAULT_LIMIT } from '../../utils/constants';
+import { Product } from '../../types/api';
 
 export const useProductList = () => {
   const dispatch = useAppDispatch();
@@ -51,9 +52,9 @@ export const useProductList = () => {
   const totalPages = useMemo(() => Math.ceil(totalProducts / DEFAULT_LIMIT), [totalProducts]);
 
   // Memoize rating calculation to avoid recalculating on every render
-  const calculateAverageRating = useCallback((product: any): number => {
+  const calculateAverageRating = useCallback((product: Product): number => {
     if (!product.product_ratings?.length) return 0;
-    const sum = product.product_ratings.reduce((acc: number, rating: any) => acc + rating.ratings, 0);
+    const sum = product.product_ratings.reduce((acc: number, rating) => acc + rating.ratings, 0);
     return sum / product.product_ratings.length;
   }, []);
 

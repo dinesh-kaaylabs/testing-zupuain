@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
+    gtag?: (...args: Array<string | number | Record<string, string | number>>) => void;
   }
 }
 

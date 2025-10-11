@@ -8,7 +8,7 @@ import {
   fetchOrderUserDetails,
   fetchOrderSummary
 } from '../../store/slices/orderSlice';
-import { OrderListItem } from '../../types/api';
+import { OrderListItem, OrderProduct, OrderSummary, OrderTimeline, OrderUserDetails } from '../../types/api';
 
 interface OrderFilters {
   status: string;
@@ -41,11 +41,20 @@ interface OrderStatistics {
   averageOrderValue: number;
 }
 
+interface OrderDetailsState {
+  products: OrderProduct[];
+  summary: OrderSummary | null;
+  timeline: OrderTimeline[];
+  userDetails: OrderUserDetails | null;
+  loading: boolean;
+  error: string | null;
+}
+
 interface UseOrderHistoryReturn {
   orders: OrderListItem[];
   filteredOrders: OrderListItem[];
   selectedOrder: OrderListItem | null;
-  orderDetails: any;
+  orderDetails: OrderDetailsState;
   loading: boolean;
   error: string | null;
   filters: OrderFilters;
@@ -91,8 +100,9 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
         store_uid: user.store?.store_uid,
       })).unwrap();
       setCurrentPage(page);
-    } catch (err: any) {
-      errorToast(err || 'Failed to fetch orders');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      errorToast(errorMessage || 'Failed to fetch orders');
     }
   }, [dispatch, user, errorToast]);
 
@@ -104,8 +114,9 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
         dispatch(fetchOrderUserDetails(orderUid)).unwrap(),
         dispatch(fetchOrderSummary(orderUid)).unwrap(),
       ]);
-    } catch (err: any) {
-      errorToast(err || 'Failed to fetch order details');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      errorToast(errorMessage || 'Failed to fetch order details');
     }
   }, [dispatch, errorToast]);
 
@@ -166,7 +177,14 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
     orders: orderState.orders,
     filteredOrders,
     selectedOrder,
-    orderDetails: orderState,
+    orderDetails: {
+      products: orderState.orderDetails,
+      summary: orderState.orderSummary,
+      timeline: orderState.timeline,
+      userDetails: orderState.userDetails,
+      loading: orderState.main.loading,
+      error: orderState.main.error,
+    },
     loading: orderState.main.loading,
     error: orderState.main.error,
     filters,
@@ -183,13 +201,13 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
     changePage,
     toggleFilters: () => setShowFilters(prev => !prev),
     handleSortChange: (field: 'date' | 'amount' | 'status') => {
-      const order = filters.sortBy.split('_')[1];
-      setFilters(prev => ({ ...prev, sortBy: `${field}_${order}` as any }));
+      const order = filters.sortBy.split('_')[1] as 'asc' | 'desc';
+      setFilters(prev => ({ ...prev, sortBy: `${field}_${order}` as OrderFilters['sortBy'] }));
     },
     toggleSortOrder: () => {
-      const field = filters.sortBy.split('_')[0];
+      const field = filters.sortBy.split('_')[0] as 'date' | 'amount';
       const newOrder = filters.sortBy.split('_')[1] === 'asc' ? 'desc' : 'asc';
-      setFilters(prev => ({ ...prev, sortBy: `${field}_${newOrder}` as any }));
+      setFilters(prev => ({ ...prev, sortBy: `${field}_${newOrder}` as OrderFilters['sortBy'] }));
     },
     handleViewDetails: (order: OrderListItem) => window.location.href = `/order-tracking/${order.order_uid}`,
     handleReorder: (order: OrderListItem) => console.log('Reordering:', order.order_uid),

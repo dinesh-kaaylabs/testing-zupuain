@@ -4,7 +4,7 @@ import { fetchUserOrders } from '../../store/slices/orderSlice';
 import { fetchUserAddresses } from '../../store/slices/addressSlice';
 import { getUserWishlist } from '../../store/slices/wishlistSlice';
 import { DEFAULT_LIMIT, DEFAULTS, INITIAL_OFFSET } from '../../utils';
-import { formatCurrency } from '../../utils/currencyFormatter';
+import { OrderListItem } from '../../types/api';
 
 const COMPLETED_STATUSES = ['delivered', 'cancelled'];
 
@@ -17,7 +17,7 @@ interface DashboardStats {
 
 interface UseDashboardReturn {
   stats: DashboardStats;
-  recentOrders: any[];
+  recentOrders: OrderListItem[];
   pendingOrdersCount: number;
   loading: boolean;
   hasDefaultAddress: boolean;

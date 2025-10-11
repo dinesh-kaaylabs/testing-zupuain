@@ -38,7 +38,7 @@ interface UseAccountSettingsReturn {
   updateSetting: <T extends keyof AccountSettingsData>(
     category: T,
     key: keyof AccountSettingsData[T],
-    value: any
+    value: AccountSettingsData[T][keyof AccountSettingsData[T]]
   ) => void;
   saveSettings: () => Promise<boolean>;
   resetSettings: () => void;
@@ -68,8 +68,9 @@ export const useAccountSettings = (): UseAccountSettingsReturn => {
       const loaded = { ...DEFAULT_SETTINGS, preferences: localPreferences };
       setSettings(loaded);
       setOriginalSettings(loaded);
-    } catch (err: any) {
-      error(err.message || 'Failed to load settings');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load settings';
+      error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -78,7 +79,7 @@ export const useAccountSettings = (): UseAccountSettingsReturn => {
   const updateSetting = useCallback(<T extends keyof AccountSettingsData>(
     category: T, 
     key: keyof AccountSettingsData[T], 
-    value: any
+    value: AccountSettingsData[T][keyof AccountSettingsData[T]]
   ) => {
     setSettings(prev => ({
       ...prev,
@@ -98,8 +99,9 @@ export const useAccountSettings = (): UseAccountSettingsReturn => {
       setOriginalSettings(settings);
       success('Settings saved successfully');
       return true;
-    } catch (err: any) {
-      error(err.message || 'Failed to save settings');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save settings';
+      error(errorMessage);
       return false;
     } finally {
       setLoading(false);
@@ -115,8 +117,9 @@ export const useAccountSettings = (): UseAccountSettingsReturn => {
       updateSetting('security', 'twoFactorEnabled', newValue);
       success(newValue ? '2FA enabled' : '2FA disabled');
       return true;
-    } catch (err: any) {
-      error(err.message || 'Failed to update 2FA');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update 2FA';
+      error(errorMessage);
       return false;
     } finally {
       setLoading(false);
@@ -130,8 +133,9 @@ export const useAccountSettings = (): UseAccountSettingsReturn => {
       await new Promise(resolve => setTimeout(resolve, 500));
       success('Password changed successfully');
       return true;
-    } catch (err: any) {
-      error(err.message || 'Failed to change password');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to change password';
+      error(errorMessage);
       return false;
     } finally {
       setLoading(false);

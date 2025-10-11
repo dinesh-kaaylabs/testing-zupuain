@@ -111,9 +111,8 @@ export const useRegistration = (): UseRegistrationReturn => {
 
       console.log('Registration result:', result);
       
-      // Check if registration was successful (both fulfilled and edge case)
-      const isSuccess = registerUser.fulfilled.match(result) || 
-        (result as any)?.meta?.requestStatus === 'fulfilled';
+      // Check if registration was successful
+      const isSuccess = registerUser.fulfilled.match(result);
       
       if (isSuccess) {
         success('Registration successful! Logging you in...');
