@@ -68,7 +68,6 @@ const createAuthThunk = <T extends AuthThunkResponse, P = any>(
     try {
       const response = await apiCall(params);
       if (!response.success) return rejectWithValue(response.message || 'Operation failed');
-      if (!response.data) return rejectWithValue('No data received');
       return response.data;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Network error occurred';

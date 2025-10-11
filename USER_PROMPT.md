@@ -119,7 +119,7 @@
         'useRegistration() → { handleRegister: (formData) => Promise<void>, loading, error, success }',
         'usePasswordStrength(password) → { strength: "weak"|"medium"|"strong", score: 0-100, requirements: {...} }',
         'useTermsModal() → { isOpen, openModal, closeModal }',
-        'useNavigate() from react-router-dom - redirect to /login after 3s success',
+        'useNavigate() from react-router-dom - redirect to home page after 3s success',
         'formValidation.ts utils: validateUserName(name), validateEmail(email), validatePhoneNumber(phone), validatePassword(password)',
       ],
       constraints: [

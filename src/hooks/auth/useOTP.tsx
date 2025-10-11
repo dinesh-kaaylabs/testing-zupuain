@@ -28,7 +28,7 @@ const initialOTPData: OTPData = {
 
 export const useOTP = (): UseOTPReturn => {
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((state) => state.auth);
+  const { loading } = useAppSelector((state) => state.auth);
   const { success, error: errorToast } = useToast();
   
   const [otpData, setOtpData] = useState<OTPData>(initialOTPData);
