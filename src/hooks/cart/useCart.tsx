@@ -13,8 +13,124 @@ import { useToast } from '../ui/useToast';
 import { useCoupon } from './useCoupon';
 import { usePricing } from './usePricing';
 import { useDerivedCartItems } from '../../utils/cartDataHelpers';
+import { UserCoupon, CartItem, BagDetail, DeliveryCharge } from '../../types/api';
+import { CouponDiscountResult, CouponFilterOptions, CouponSortBy } from '../../utils/couponUtils';
 
-export const useCart = () => {
+interface PricingInfo {
+  subtotal: number;
+  deliveryCharge: number;
+  baseDeliveryCharge: number;
+  deliveryDiscount: number;
+  productDiscount: number;
+  discount: number;
+  tax: number;
+  codCharge: number;
+  total: number;
+  couponApplied: boolean;
+  isFreeDelivery: boolean;
+}
+
+interface PricingSummaryInfo {
+  subtotal: string;
+  deliveryCharge: string;
+  baseDeliveryCharge: string;
+  deliveryDiscount: string;
+  productDiscount: string;
+  discount: string;
+  tax: string;
+  codCharge: string;
+  total: string;
+  savings: string;
+}
+
+interface DeliveryChargeInfo {
+  baseCharge: number;
+  finalCharge: number;
+  saved: number;
+  isFree: boolean;
+  hasDiscount: boolean;
+}
+
+interface CouponStats {
+  total: number;
+  valid: number;
+  invalid: number;
+  bestSavings: number;
+  appliedSavings: number;
+}
+
+interface BestCouponInfo {
+  coupon: UserCoupon | null;
+  savings: number;
+  discount: CouponDiscountResult | null;
+}
+
+interface InvalidCouponInfo {
+  coupon: UserCoupon;
+  validation: {
+    isValid: boolean;
+    message?: string;
+    reason?: string;
+  };
+}
+
+interface UseCartReturn {
+  // Cart state
+  cartItems: (CartItem | BagDetail)[];
+  isGuest: boolean;
+  loading: boolean;
+  error: string | null;
+  totalItems: number;
+  isUpdating: boolean;
+  hasInitialized: boolean;
+  
+  // Pricing
+  pricing: PricingInfo;
+  pricingSummary: PricingSummaryInfo;
+  totalSavings: number;
+  potentialSavings: number;
+  discountBreakdown: Array<{ label: string; amount: number }>;
+  deliveryChargeInfo: DeliveryChargeInfo;
+  deliveryCharge: DeliveryCharge | null;
+  deliveryChargeLoading: boolean;
+  isFreeDeliveryEligible: boolean;
+  
+  // Coupons
+  appliedCoupon: UserCoupon | null;
+  appliedDiscount: CouponDiscountResult | null;
+  availableCoupons: UserCoupon[];
+  validCoupons: UserCoupon[];
+  invalidCoupons: InvalidCouponInfo[];
+  bestCoupon: BestCouponInfo;
+  couponsLoading: boolean;
+  couponStats: CouponStats;
+  
+  // Cart actions
+  handleIncrement: (uid: string, id?: number) => void;
+  handleDecrement: (uid: string, id?: number) => void;
+  handleRemove: (uid: string, id?: number) => void;
+  handleMoveToWishlist: (uid: string) => Promise<void>;
+  handleCheckout: () => void;
+  
+  // Coupon actions
+  handleApplyCoupon: (code: string) => Promise<boolean>;
+  handleApplyCouponDirect: (coupon: UserCoupon) => Promise<boolean>;
+  handleRemoveCoupon: () => void;
+  applyBestCoupon: () => void;
+  previewDiscount: (coupon: UserCoupon) => CouponDiscountResult | null;
+  refreshCoupons: () => void;
+  updateFilters: (options: Partial<CouponFilterOptions>) => void;
+  clearFilters: () => void;
+  setSortBy: (sortBy: CouponSortBy) => void;
+  
+  // Utilities
+  filterOptions: CouponFilterOptions;
+  sortBy: CouponSortBy;
+  formatCurrency: (amount: number) => string;
+  refreshDeliveryCharge: () => void;
+}
+
+export const useCart = (): UseCartReturn => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
@@ -129,8 +245,9 @@ export const useCart = () => {
       })).unwrap();
       if (!isGuest) await dispatch(fetchBag(defaultStore.store_uid)).unwrap();
       if (successMsg) success(successMsg);
-    } catch (err: any) {
-      showError(err || 'Failed to update cart');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Failed to update cart');
+      showError(errorMessage);
     } finally {
       setIsUpdating(false);
     }

@@ -8,7 +8,20 @@ interface usePricingSummaryProps {
   appliedCoupon: UserCoupon | null;
 }
 
-export const usePricingSummary = ({ subtotal, deliveryCharge, appliedCoupon }: usePricingSummaryProps) => {
+interface UsePricingSummaryReturn {
+  formatCurrency: (amount: number) => string;
+  freeShippingInfo: {
+    freeShippingThreshold: number;
+    amountForFreeShipping: number;
+    isFreeShipping: boolean;
+    isFreeShippingCoupon: boolean;
+    progressPercentage: number;
+    showProgressBar: boolean;
+    showBadge: boolean;
+  };
+}
+
+export const usePricingSummary = ({ subtotal, deliveryCharge, appliedCoupon }: usePricingSummaryProps): UsePricingSummaryReturn => {
   const { formatCurrency } = useCurrencyFormatter();
   const freeShippingInfo = useMemo(() => {
     const threshold = 500;

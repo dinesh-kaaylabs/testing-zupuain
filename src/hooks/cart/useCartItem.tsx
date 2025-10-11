@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { BagDetail, CartItem as CartItemType } from '../../types/api';
+import { BagDetail, CartItem as CartItemType, Product, ProductVariant, VariantAttribute } from '../../types/api';
 import { DEFAULTS } from '../../utils/constants';
 import { getCartItemInfo, getProductDetails, calculateItemPricing, checkStockAvailability } from '../../utils/cartHelpers';
 import { useCurrencyFormatter } from '../../utils/currencyFormatter';
@@ -14,9 +14,45 @@ interface UseCartItemProps {
   isUpdating?: boolean;
 }
 
+interface ItemPricing {
+  price: number;
+  mrp: number;
+  discountPercent: number;
+  totalPrice: number;
+  totalMrp: number;
+  savings: number;
+}
+
+interface StockInfo {
+  stock: number;
+  minOrderQuantity: number;
+  isLowStock: boolean | undefined;
+  isOutOfStock: boolean | undefined;
+  canIncrement: boolean;
+  canDecrement: boolean;
+}
+
+interface UseCartItemReturn {
+  productUid: string;
+  productCount: number;
+  productInfo: { productName: string; productImage: string };
+  pricing: ItemPricing;
+  stockInfo: StockInfo;
+  variantInfo: { variantId?: number | string; variantText?: string };
+  isRemoving: boolean;
+  isMovingToWishlist: boolean;
+  isUpdating: boolean;
+  isGuest: boolean;
+  handleIncrement: () => Promise<void>;
+  handleDecrement: () => Promise<void>;
+  handleRemove: () => Promise<void>;
+  handleMoveToWishlist: () => Promise<void>;
+  formatCurrency: (amount: number) => string;
+}
+
 export const useCartItem = ({
   item, isGuest, onIncrement, onDecrement, onRemove, onMoveToWishlist, isUpdating = false,
-}: UseCartItemProps) => {
+}: UseCartItemProps): UseCartItemReturn => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [isMovingToWishlist, setIsMovingToWishlist] = useState(false);
   const { formatCurrency } = useCurrencyFormatter();
@@ -38,9 +74,9 @@ export const useCartItem = ({
   const variantInfo = useMemo(() => {
     const isBag = 'bag_detail_id' in item;
     const variantId = isBag ? item.product_variant_id : undefined;
-    const variant = variantId && product?.product_variants?.find((v: any) => v.id === variantId.toString());
+    const variant = variantId && product?.product_variants?.find((v: ProductVariant) => v.id === variantId.toString());
     const variantText = variant && typeof variant === 'object' && variant.variant_attributes
-      ? variant.variant_attributes.map((attr: any) => `${attr.zm_attribute.name}: ${attr.attribute_value}`).join(', ')
+      ? variant.variant_attributes.map((attr: VariantAttribute) => `${attr.zm_attribute.name}: ${attr.attribute_value}`).join(', ')
       : undefined;
     return { variantId, variantText };
   }, [item, product]);

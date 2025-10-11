@@ -5,7 +5,14 @@ import { Product } from '../../types/api';
 import { ProductDisplayData, createCartItem } from '../../utils/productUtils';
 import { useToast } from '../ui/useToast';
 
-export const useCartActions = () => {
+interface UseCartActionsReturn {
+  handleAddToCart: (product: Product, displayData: ProductDisplayData, quantity?: number) => Promise<boolean>;
+  handleIncrementQuantity: (uid: string, id?: number) => Promise<boolean>;
+  handleDecrementQuantity: (uid: string, id?: number) => Promise<boolean>;
+  handleRemoveFromCart: (uid: string, id?: number) => Promise<boolean>;
+}
+
+export const useCartActions = (): UseCartActionsReturn => {
   const dispatch = useAppDispatch();
   const { success, error } = useToast();
   const handleAddToCart = useCallback(async (product: Product, displayData: ProductDisplayData, quantity?: number) => {

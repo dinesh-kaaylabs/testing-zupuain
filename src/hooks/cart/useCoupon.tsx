@@ -25,14 +25,62 @@ interface UseCouponProps {
   isOnlinePayment?: boolean;
 }
 
+interface CouponValidationResult {
+  isValid: boolean;
+  message?: string;
+  reason?: 'expired' | 'not_started' | 'inactive' | 'usage_limit' | 'min_order' | 'no_eligible_items' | 'payment_restriction';
+}
+
+interface InvalidCouponInfo {
+  coupon: UserCoupon;
+  validation: CouponValidationResult;
+}
+
+interface UseCouponReturn {
+  // State
+  appliedCoupon: UserCoupon | null;
+  appliedDiscount: CouponDiscountResult | null;
+  availableCoupons: UserCoupon[];
+  validCoupons: UserCoupon[];
+  invalidCoupons: InvalidCouponInfo[];
+  bestCoupon: { coupon: UserCoupon | null; savings: number; discount: CouponDiscountResult | null };
+  couponsLoading: boolean;
+  couponStats: {
+    total: number;
+    valid: number;
+    invalid: number;
+    bestSavings: number;
+    appliedSavings: number;
+  };
+  autoApplyBest: boolean;
+  
+  // Filters & Sorting
+  filterOptions: CouponFilterOptions;
+  sortBy: CouponSortBy;
+  updateFilters: (options: Partial<CouponFilterOptions>) => void;
+  clearFilters: () => void;
+  setSortBy: (sortBy: CouponSortBy) => void;
+  setAutoApplyBest: (value: boolean) => void;
+  
+  // Functions
+  handleApplyCoupon: (couponCode: string) => Promise<boolean>;
+  handleApplyCouponDirect: (coupon: UserCoupon) => Promise<boolean>;
+  handleRemoveCoupon: () => void;
+  applyBestCoupon: () => void;
+  previewDiscount: (coupon: UserCoupon) => CouponDiscountResult | null;
+  refreshCoupons: () => void;
+  
+  // Utilities
+  validateCoupon: (coupon: UserCoupon) => CouponValidationResult;
+  calculateDiscount: (coupon: UserCoupon) => CouponDiscountResult;
+}
+
 export const useCoupon = ({
-  isAuthenticated,
-  userUid,
   cartTotal,
   deliveryCharge,
   cartItems,
   isOnlinePayment = false,
-}: UseCouponProps) => {
+}: UseCouponProps): UseCouponReturn => {
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
 
@@ -113,7 +161,7 @@ export const useCoupon = ({
         }
         return null;
       })
-      .filter(Boolean) as Array<{ coupon: UserCoupon; validation: ReturnType<typeof validateCoupon> }>;
+      .filter((item): item is InvalidCouponInfo => item !== null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processedCoupons, cartTotal, cartItemsKey, isOnlinePayment]);
 

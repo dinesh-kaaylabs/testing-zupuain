@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../redux';
 import { getDeliveryCharge } from '../../store/slices/deliveryChargeSlice';
-import { UserCoupon } from '../../types/api';
+import { UserCoupon, DeliveryCharge } from '../../types/api';
 import { CouponDiscountResult } from '../../utils/couponUtils';
 import { useCurrencyFormatter } from '../../utils/currencyFormatter';
 
@@ -13,7 +13,56 @@ interface UsePricingProps {
   selectedPaymentMethod?: { slug: string } | null;
 }
 
-export const usePricing = ({ subtotal, appliedCoupon, appliedDiscount, storeUid, selectedPaymentMethod }: UsePricingProps) => {
+interface PricingInfo {
+  subtotal: number;
+  deliveryCharge: number;
+  baseDeliveryCharge: number;
+  deliveryDiscount: number;
+  productDiscount: number;
+  discount: number;
+  tax: number;
+  codCharge: number;
+  total: number;
+  couponApplied: boolean;
+  isFreeDelivery: boolean;
+}
+
+interface PricingSummaryInfo {
+  subtotal: string;
+  deliveryCharge: string;
+  baseDeliveryCharge: string;
+  deliveryDiscount: string;
+  productDiscount: string;
+  discount: string;
+  tax: string;
+  codCharge: string;
+  total: string;
+  savings: string;
+}
+
+interface DeliveryChargeInfo {
+  baseCharge: number;
+  finalCharge: number;
+  saved: number;
+  isFree: boolean;
+  hasDiscount: boolean;
+}
+
+interface UsePricingReturn {
+  pricing: PricingInfo;
+  pricingSummary: PricingSummaryInfo;
+  totalSavings: number;
+  potentialSavings: number;
+  discountBreakdown: Array<{ label: string; amount: number }>;
+  deliveryChargeInfo: DeliveryChargeInfo;
+  deliveryCharge: DeliveryCharge | null;
+  deliveryChargeLoading: boolean;
+  isFreeDeliveryEligible: boolean;
+  formatCurrency: (amount: number) => string;
+  refreshDeliveryCharge: () => void;
+}
+
+export const usePricing = ({ subtotal, appliedCoupon, appliedDiscount, storeUid, selectedPaymentMethod }: UsePricingProps): UsePricingReturn => {
   const dispatch = useAppDispatch();
   const { deliveryCharge, loading: deliveryChargeLoading } = useAppSelector((state) => state.deliveryCharge);
   const codChargeAmount = useAppSelector((state) => state.tenant.defaultTenant?.setting?.cod_charge || 0);

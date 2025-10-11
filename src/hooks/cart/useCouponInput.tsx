@@ -17,9 +17,29 @@ interface UseCouponInputProps {
   cartTotal: number;
 }
 
+interface UseCouponInputReturn {
+  couponCode: string;
+  error: string | null;
+  isApplying: boolean;
+  showAllCoupons: boolean;
+  searchQuery: string;
+  filterType: string;
+  showFilters: boolean;
+  filteredValidCoupons: UserCoupon[];
+  minAmountNeeded: number;
+  handleApplyCoupon: () => Promise<void>;
+  handleRemoveCoupon: () => void;
+  handleSelectCoupon: (coupon: UserCoupon) => Promise<void>;
+  handleCouponCodeChange: (value: string) => void;
+  handleSearchChange: (value: string) => void;
+  handleFilterTypeChange: (type: string) => void;
+  toggleShowAllCoupons: () => void;
+  toggleShowFilters: () => void;
+}
+
 export const useCouponInput = ({
   validCoupons, invalidCoupons, onApplyCoupon, onApplyCouponDirect, onRemoveCoupon, cartTotal,
-}: UseCouponInputProps) => {
+}: UseCouponInputProps): UseCouponInputReturn => {
   const [couponCode, setCouponCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
