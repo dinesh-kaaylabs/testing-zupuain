@@ -50,13 +50,14 @@ This document provides a clear mapping of which hooks should be used for each pa
 
 ### Main Page
 - `useProductList()` → **PRIMARY HOOK** - ALL functionality
-  - Products data
-  - Search with debounce
-  - Filters (category, subcategory, availability)
-  - Sort options
-  - Pagination
-  - Infinite scroll
-  - View mode (grid/list)
+  - Products data (products, filteredProducts, totalProducts, totalPages)
+  - Search with debounce (searchQuery, handleSearchChange)
+  - Filters (category, subcategory, availability, priceRange, selectedRating)
+  - Sort options (sortBy, handleSortChange)
+  - Pagination (currentPage, handlePageChange, totalPages)
+  - Infinite scroll (hasMore, handleLoadMore, infiniteScrollLoading)
+  - View mode (viewMode, handleViewModeChange)
+  - Additional: error, refetch, calculateAverageRating
 - `useProductUtils()` → Format products (NO tenant param)
 - `useCartActions()` → Add to cart
 - `useWishlistActions()` → Wishlist management
