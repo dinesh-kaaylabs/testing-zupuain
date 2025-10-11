@@ -4,7 +4,16 @@ import { addToWishlist, removeFromWishlist } from '../../store/slices/wishlistSl
 import { Product } from '../../types/api';
 import { useToast } from '../ui/useToast';
 
-export const useWishlistActions = () => {
+interface UseWishlistActionsReturn {
+  wishlistItems: Product[];
+  wishlistProductUids: string[];
+  isInWishlist: (uid: string) => boolean;
+  handleAddToWishlist: (product: Product) => Promise<boolean>;
+  handleRemoveFromWishlist: (uid: string) => Promise<boolean>;
+  handleToggleWishlist: (product: Product) => Promise<boolean>;
+}
+
+export const useWishlistActions = (): UseWishlistActionsReturn => {
   const dispatch = useAppDispatch();
   const { success, error } = useToast();
   const { wishlistItems } = useAppSelector((state) => state.wishlist);

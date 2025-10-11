@@ -9,7 +9,16 @@ interface UseWishlistFiltersProps {
   displayDataMap: Map<string, ProductDisplayData>;
 }
 
-export const useWishlistFilters = ({ products, displayDataMap }: UseWishlistFiltersProps) => {
+interface UseWishlistFiltersReturn {
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  sortBy: SortOption;
+  setSortBy: React.Dispatch<React.SetStateAction<SortOption>>;
+  filteredProducts: Product[];
+  sortedProducts: Product[];
+}
+
+export const useWishlistFilters = ({ products, displayDataMap }: UseWishlistFiltersProps): UseWishlistFiltersReturn => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 

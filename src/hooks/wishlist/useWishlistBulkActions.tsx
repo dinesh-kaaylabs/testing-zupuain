@@ -11,12 +11,17 @@ interface UseWishlistBulkActionsProps {
   clearSelection: () => void;
 }
 
+interface UseWishlistBulkActionsReturn {
+  handleRemoveSelected: () => Promise<void>;
+  handleMoveSelectedToCart: () => Promise<void>;
+}
+
 export const useWishlistBulkActions = ({
   selectedItems,
   products,
   displayDataMap,
   clearSelection,
-}: UseWishlistBulkActionsProps) => {
+}: UseWishlistBulkActionsProps): UseWishlistBulkActionsReturn => {
   const { handleAddToCart } = useCartActions();
   const { handleRemoveFromWishlist } = useWishlistActions();
   const { success } = useToast();

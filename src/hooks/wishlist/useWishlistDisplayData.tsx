@@ -7,7 +7,11 @@ interface UseWishlistDisplayDataProps {
   products: Product[];
 }
 
-export const useWishlistDisplayData = ({ products }: UseWishlistDisplayDataProps) => {
+interface UseWishlistDisplayDataReturn {
+  displayDataMap: Map<string, ProductDisplayData>;
+}
+
+export const useWishlistDisplayData = ({ products }: UseWishlistDisplayDataProps): UseWishlistDisplayDataReturn => {
   const { formatProductForDisplay } = useProductUtils();
 
   // Create display data map for all products

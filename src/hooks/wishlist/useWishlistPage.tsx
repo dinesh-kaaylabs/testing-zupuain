@@ -3,8 +3,29 @@ import { useWishlistDisplayData } from './useWishlistDisplayData';
 import { useWishlistFilters } from './useWishlistFilters';
 import { useWishlistSelection } from './useWishlistSelection';
 import { useWishlistBulkActions } from './useWishlistBulkActions';
+import type { Product } from '../../types/api';
+import type { ProductDisplayData } from '../../utils/productUtils';
+import type { SortOption } from './useWishlistFilters';
 
-export const useWishlistPage = () => {
+interface UseWishlistPageReturn {
+  wishlistItems: Product[];
+  loading: boolean;
+  sortedProducts: Product[];
+  displayDataMap: Map<string, ProductDisplayData>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  sortBy: SortOption;
+  setSortBy: React.Dispatch<React.SetStateAction<SortOption>>;
+  selectedItems: Set<string>;
+  selectedCount: number;
+  handleToggleSelect: (productUid: string) => void;
+  handleSelectAll: () => void;
+  handleDeselectAll: () => void;
+  handleRemoveSelected: () => Promise<void>;
+  handleMoveSelectedToCart: () => Promise<void>;
+}
+
+export const useWishlistPage = (): UseWishlistPageReturn => {
   // Get wishlist state from Redux
   const { wishlistItems } = useAppSelector((state) => state.wishlist);
   const loading = useAppSelector((state) => state.wishlist.loading);

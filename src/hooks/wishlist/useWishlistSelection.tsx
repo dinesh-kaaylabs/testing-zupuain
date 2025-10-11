@@ -5,7 +5,16 @@ interface UseWishlistSelectionProps {
   products: Product[];
 }
 
-export const useWishlistSelection = ({ products }: UseWishlistSelectionProps) => {
+interface UseWishlistSelectionReturn {
+  selectedItems: Set<string>;
+  selectedCount: number;
+  handleToggleSelect: (productUid: string) => void;
+  handleSelectAll: () => void;
+  handleDeselectAll: () => void;
+  clearSelection: () => void;
+}
+
+export const useWishlistSelection = ({ products }: UseWishlistSelectionProps): UseWishlistSelectionReturn => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Clear selections when products change
