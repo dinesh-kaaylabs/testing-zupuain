@@ -1,7 +1,22 @@
 import { useMemo } from 'react';
 import { OrderUserDetails } from '../../types/api';
 
-export const useDeliveryDetails = (userDetails: OrderUserDetails | null) => 
+interface DeliverySection {
+  id: string;
+  label: string;
+  value: string | string[];
+  icon: string;
+  bgColor: string;
+  iconColor: string;
+  isClickable?: boolean;
+  href?: string;
+}
+
+interface UseDeliveryDetailsReturn {
+  sections: DeliverySection[];
+}
+
+export const useDeliveryDetails = (userDetails: OrderUserDetails | null): UseDeliveryDetailsReturn | null => 
   useMemo(() => {
     if (!userDetails) return null;
     const { user_name, complete_address, city, state, pincode, country, phone_number, payment_method } = userDetails;

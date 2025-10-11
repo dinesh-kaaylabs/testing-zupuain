@@ -2,11 +2,52 @@ import { useMemo } from 'react';
 import { Order, OrderListItem } from '../../types/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 
+interface OrderDisplayData {
+  orderNumber: string;
+  orderId: string;
+  formattedDate: string;
+  formattedDateTime: string;
+  formattedPrice: string;
+  totalPrice: number;
+  itemCount: number;
+  itemCountText: string;
+  status: string;
+  statusDescription: string;
+  deliveryDate: string | null;
+  deliveryTime: string | null;
+  deliverySlot: string | null;
+}
+
+interface OrdersDisplayData {
+  orderNumber: string;
+  orderId: string;
+  formattedDate: string;
+  formattedPrice: string;
+  totalPrice: number;
+  itemCount: number;
+  itemCountText: string;
+  status: string;
+  statusDescription: string;
+  rawOrder: Order | OrderListItem;
+}
+
+interface OrderStatistics {
+  totalOrders: number;
+  totalSpent: number;
+  formattedTotalSpent: string;
+  avgOrderValue: number;
+  formattedAvgOrderValue: string;
+  statusCounts: Record<string, number>;
+  pendingCount: number;
+  deliveredCount: number;
+  cancelledCount: number;
+}
+
 /**
  * Format order for display in lists (dashboard, order history)
  * Returns consistent display format with all necessary fields
  */
-export const useOrderDisplay = (order: Order | OrderListItem | null) => 
+export const useOrderDisplay = (order: Order | OrderListItem | null): OrderDisplayData | null => 
   useMemo(() => {
     if (!order) return null;
     
@@ -48,7 +89,7 @@ export const useOrderDisplay = (order: Order | OrderListItem | null) =>
 /**
  * Format multiple orders for display
  */
-export const useOrdersDisplay = (orders: (Order | OrderListItem)[] | null) => 
+export const useOrdersDisplay = (orders: (Order | OrderListItem)[] | null): OrdersDisplayData[] | null => 
   useMemo(() => {
     if (!orders || orders.length === 0) return null;
     
@@ -91,7 +132,7 @@ export const getOrderStatusColor = (status: string): string => {
 /**
  * Format order statistics for dashboard
  */
-export const useOrderStatistics = (orders: (Order | OrderListItem)[] | null) => 
+export const useOrderStatistics = (orders: (Order | OrderListItem)[] | null): OrderStatistics | null => 
   useMemo(() => {
     if (!orders || orders.length === 0) return null;
     

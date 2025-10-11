@@ -2,7 +2,27 @@ import { useMemo } from 'react';
 import { OrderSummary } from '../../types/api';
 import { formatCurrency as fc } from '../../utils/currencyFormatter';
 
-export const useOrderSummary = (summary: OrderSummary | null) => 
+interface OrderSummaryLineItem {
+  label: string;
+  value: string;
+  icon: string;
+  className: string;
+  isPositive?: boolean;
+}
+
+interface UseOrderSummaryReturn {
+  lineItems: OrderSummaryLineItem[];
+  totalFormatted: string;
+  hasDiscount: boolean;
+  savingsAmount: number;
+  savingsFormatted: string;
+}
+
+interface UseOrderSummaryConditionsReturn {
+  isHighValue: boolean;
+}
+
+export const useOrderSummary = (summary: OrderSummary | null): UseOrderSummaryReturn | null => 
   useMemo(() => {
     if (!summary) return null;
     const { order_price: op, order_discount_amount: oda, delivery_charge: dc, cod_charge: cc, order_gst_amount: oga, total_price: tp } = summary;
@@ -22,5 +42,5 @@ export const useOrderSummary = (summary: OrderSummary | null) =>
     };
   }, [summary]);
 
-export const useOrderSummaryConditions = (summary: OrderSummary | null) => 
+export const useOrderSummaryConditions = (summary: OrderSummary | null): UseOrderSummaryConditionsReturn | null => 
   useMemo(() => summary ? { isHighValue: summary.total_price > 5000 } : null, [summary]);

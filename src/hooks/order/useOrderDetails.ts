@@ -3,7 +3,18 @@ import { useAppDispatch, useAppSelector } from '../redux';
 import { fetchOrderDetails, fetchOrderTimeline, fetchOrderUserDetails, fetchOrderSummary } from '../../store/slices/orderSlice';
 import { OrderProduct, OrderTimelineItem, OrderUserDetails, OrderSummary } from '../../types/api';
 
-export const useOrderDetails = (orderUid: string | undefined) => {
+interface UseOrderDetailsReturn {
+  orderDetails: OrderProduct[];
+  timeline: OrderTimelineItem[];
+  userDetails: OrderUserDetails | null;
+  orderSummary: OrderSummary | null;
+  loading: boolean;
+  error: string | null;
+  isRefreshing: boolean;
+  refreshOrderData: () => Promise<void>;
+}
+
+export const useOrderDetails = (orderUid: string | undefined): UseOrderDetailsReturn => {
   const dispatch = useAppDispatch();
   const { orderDetails, timeline, userDetails, orderSummary, main } = useAppSelector(state => state.order);
   const [isRefreshing, setIsRefreshing] = useState(false);

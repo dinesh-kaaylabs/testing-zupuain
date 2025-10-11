@@ -2,7 +2,28 @@ import { useMemo } from 'react';
 import { OrderProduct } from '../../types/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 
-export const useOrderItems = (products: OrderProduct[] | null) => 
+interface OrderItemDisplay {
+  id: number;
+  product_uid: string;
+  name: string;
+  image: string;
+  quantity: number;
+  unitPrice: number;
+  unitPriceFormatted: string;
+  totalPrice: number;
+  totalPriceFormatted: string;
+  hasDiscount: boolean;
+  discountAmount: number;
+  originalPrice: number;
+}
+
+interface UseOrderItemsReturn {
+  items: OrderItemDisplay[];
+  totalItems: number;
+  hasMultipleItems: boolean;
+}
+
+export const useOrderItems = (products: OrderProduct[] | null): UseOrderItemsReturn | null => 
   useMemo(() => {
     if (!products?.length) return null;
     const items = products.map(p => ({

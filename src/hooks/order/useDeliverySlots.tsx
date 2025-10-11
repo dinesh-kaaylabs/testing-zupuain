@@ -1,7 +1,14 @@
 import { useMemo } from 'react';
 import { DeliverySlot } from '../../types/api';
 
-export const useDeliverySlots = (deliverySlots: DeliverySlot[], selectedDate: string | null) => {
+interface UseDeliverySlotsReturn {
+  availableDates: string[];
+  slotsForDate: DeliverySlot[];
+  hasSlots: boolean;
+  hasSlotsForDate: boolean;
+}
+
+export const useDeliverySlots = (deliverySlots: DeliverySlot[], selectedDate: string | null): UseDeliverySlotsReturn => {
   const availableDates = useMemo(() => 
     [...new Set(deliverySlots.map(s => s.delivery_date))].filter(Boolean).sort() as string[]
   , [deliverySlots]);

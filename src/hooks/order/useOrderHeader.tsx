@@ -1,7 +1,26 @@
 import { useMemo } from 'react';
 import { formatDate } from './shared';
 
-export const useOrderHeader = (orderId: string, orderSerialNumber?: string, creationDate?: string) => 
+interface OrderHeaderData {
+  displayOrderNumber: string;
+  formattedDate: string | null;
+  hasDate: boolean;
+  isNew: boolean;
+}
+
+interface OrderHeaderActions {
+  showRefreshButton: boolean;
+  showCancelButton: boolean;
+  isRefreshDisabled: boolean;
+  refreshButtonState: 'loading' | 'idle';
+}
+
+interface OrderHeaderBreadcrumb {
+  path: string;
+  label: string;
+}
+
+export const useOrderHeader = (orderId: string, orderSerialNumber?: string, creationDate?: string): OrderHeaderData | null => 
   useMemo(() => {
     if (!orderId) return null;
     const isNew = creationDate ? Math.ceil((Date.now() - new Date(creationDate).getTime()) / 86400000) <= 2 : false;
@@ -13,7 +32,7 @@ export const useOrderHeader = (orderId: string, orderSerialNumber?: string, crea
     };
   }, [orderId, orderSerialNumber, creationDate]);
 
-export const useOrderHeaderActions = (isRefreshing: boolean, canCancel: boolean) => 
+export const useOrderHeaderActions = (isRefreshing: boolean, canCancel: boolean): OrderHeaderActions => 
   useMemo(() => ({
     showRefreshButton: true,
     showCancelButton: canCancel,
@@ -21,7 +40,7 @@ export const useOrderHeaderActions = (isRefreshing: boolean, canCancel: boolean)
     refreshButtonState: isRefreshing ? 'loading' as const : 'idle' as const,
   }), [isRefreshing, canCancel]);
 
-export const useOrderHeaderBreadcrumb = (returnPath?: string) => 
+export const useOrderHeaderBreadcrumb = (returnPath?: string): OrderHeaderBreadcrumb => 
   useMemo(() => ({
     path: returnPath || '/account',
     label: 'Back to Orders',

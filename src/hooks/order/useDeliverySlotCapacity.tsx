@@ -6,7 +6,14 @@ interface CapacityStatus {
   color: string;
 }
 
-export const useDeliverySlotCapacity = () => {
+interface UseDeliverySlotCapacityReturn {
+  getCapacityPercentage: (slot: DeliverySlot) => number;
+  getCapacityStatus: (slot: DeliverySlot) => CapacityStatus;
+  isSlotFull: (slot: DeliverySlot) => boolean;
+  isSlotPopular: (slot: DeliverySlot) => boolean;
+}
+
+export const useDeliverySlotCapacity = (): UseDeliverySlotCapacityReturn => {
   const getCapacityPercentage = useCallback((slot: DeliverySlot): number => {
     if (!slot.max_orders_per_slot || slot.order_count === undefined) return 0;
     return (slot.order_count / slot.max_orders_per_slot) * 100;
