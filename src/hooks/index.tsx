@@ -9,6 +9,7 @@ export { useLocalStorage } from './utils/useLocalStorage';
 export { useIntersectionObserver } from './utils/useIntersectionObserver';
 export { useSmartRetry } from './utils/useSmartRetry';
 export { usePerformanceMonitor, useWebVitals } from './utils/usePerformanceMonitor';
+export { useModal } from './utils/useModal';
 
 // Data hooks
 export { useFeaturedProducts } from './product/useFeaturedProducts';

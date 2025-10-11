@@ -39,7 +39,7 @@ export const useProductList = () => {
   } = productState;
 
   // Use searchQuery directly from Redux instead of duplicating in local state
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [viewMode, setViewMode] = useState<'pagination' | 'infinite'>('pagination');
   const initialLoadTriggered = useRef(false);
   const isSearching = useRef(false);
