@@ -22,7 +22,7 @@ export { useProductDetails } from './product/useProductDetails';
 
 // Cart and Wishlist hooks
 export { useCartActions } from './cart/useCartActions';
-export { useWishlistActions } from './product/useWishlistActions';
+export { useWishlistActions } from './wishlist/useWishlistActions';
 
 // Wishlist Page Hooks
 export { 

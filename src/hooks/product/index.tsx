@@ -4,4 +4,4 @@ export { useProductUtils, useProductDisplayData, useCategoryDisplayData } from '
 export { useFeaturedProducts } from './useFeaturedProducts';
 export { useFeaturedCategories } from './useFeaturedCategories';
 export { useBestSellers } from './useBestSellers';
-export { useWishlistActions } from './useWishlistActions';
+export { useWishlistActions } from '../wishlist/useWishlistActions';

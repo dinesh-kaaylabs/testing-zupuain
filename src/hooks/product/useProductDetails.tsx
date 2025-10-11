@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch } from '../redux/useAppDispatch';
 import { useAppSelector } from '../redux/useAppSelector';
@@ -30,7 +30,7 @@ export const useProductDetails = (): UseProductDetailsReturn => {
     related
   } = useAppSelector((state) => state.product);
 
-  const fetchProductDetails = async () => {
+  const fetchProductDetails = useCallback(async () => {
     if (!productId) return;
 
     try {
@@ -42,7 +42,7 @@ export const useProductDetails = (): UseProductDetailsReturn => {
     } catch (err) {
       console.error('Failed to fetch product data:', err);
     }
-  };
+  }, [dispatch, productId]);
 
   useEffect(() => {
     // Only fetch if productId has changed
@@ -50,7 +50,7 @@ export const useProductDetails = (): UseProductDetailsReturn => {
       lastProductId.current = productId;
       fetchProductDetails();
     }
-  }, [productId]); // Only depend on productId
+  }, [productId, fetchProductDetails]);
 
   const averageRating = productReviews.length > 0 
     ? productReviews.reduce((sum, review) => sum + review.ratings, 0) / productReviews.length 

@@ -1,13 +1,23 @@
 import { useAppSelector, useAppDispatch } from '../redux';
 import { useEffect, useRef } from 'react';
+import { Product } from '../../types/api';
+import { RootState } from '../../store';
+import { AsyncThunk } from '@reduxjs/toolkit';
 
 interface UseProductDataParams {
-  selector: (state: any) => { products: any[]; loading: boolean; error: string | null };
-  action: any;
+  selector: (state: RootState) => { products: Product[]; loading: boolean; error: string | null };
+  action: AsyncThunk<Product[], Record<string, any>, any>;
   fetchParams: Record<string, any>;
 }
 
-export const useProductData = ({ selector, action, fetchParams }: UseProductDataParams) => {
+interface UseProductDataReturn {
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+}
+
+export const useProductData = ({ selector, action, fetchParams }: UseProductDataParams): UseProductDataReturn => {
   const dispatch = useAppDispatch();
   const { products, loading, error } = useAppSelector(selector);
   const hasInitialized = useRef(false);
