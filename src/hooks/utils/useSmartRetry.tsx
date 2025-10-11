@@ -7,7 +7,16 @@ interface RetryOptions {
   backoffMultiplier?: number;
 }
 
-export const useSmartRetry = (options: RetryOptions = {}) => {
+interface UseSmartRetryReturn {
+  executeWithRetry: (
+    key: string,
+    operation: () => Promise<any>,
+    onRetry?: (attempt: number, error: Error) => void
+  ) => Promise<any>;
+  resetRetryCount: (key: string) => void;
+}
+
+export const useSmartRetry = (options: RetryOptions = {}): UseSmartRetryReturn => {
   const { maxRetries = 3, baseDelay = 1000, maxDelay = 10000, backoffMultiplier = 2 } = options;
   const retryCountRef = useRef<Map<string, number>>(new Map());
 

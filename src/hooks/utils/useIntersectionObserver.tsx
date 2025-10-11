@@ -6,9 +6,14 @@ interface UseIntersectionObserverOptions {
   triggerOnce?: boolean;
 }
 
+interface UseIntersectionObserverReturn<T extends HTMLElement = HTMLElement> {
+  elementRef: React.RefObject<T | null>;
+  isIntersecting: boolean;
+}
+
 export const useIntersectionObserver = <T extends HTMLElement = HTMLElement>(
   options: UseIntersectionObserverOptions = {}
-) => {
+): UseIntersectionObserverReturn<T> => {
   const { threshold = 0.1, rootMargin = '0px', triggerOnce = true } = options;
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);

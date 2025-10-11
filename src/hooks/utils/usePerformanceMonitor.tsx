@@ -6,7 +6,12 @@ declare global {
   }
 }
 
-export const usePerformanceMonitor = (componentName: string) => {
+interface UsePerformanceMonitorReturn {
+  markRenderStart: () => void;
+  markRenderEnd: () => void;
+}
+
+export const usePerformanceMonitor = (componentName: string): UsePerformanceMonitorReturn => {
   const startTime = useRef<number>(Date.now());
   const renderStartTime = useRef<number>(Date.now());
 
@@ -31,7 +36,7 @@ export const usePerformanceMonitor = (componentName: string) => {
   return { markRenderStart, markRenderEnd };
 };
 
-export const useWebVitals = () => {
+export const useWebVitals = (): void => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB }) => {

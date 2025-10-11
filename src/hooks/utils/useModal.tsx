@@ -1,6 +1,15 @@
 import { useState, useCallback } from 'react';
 
-export const useModal = (defaultMessage?: string) => {
+interface UseModalReturn {
+  isOpen: boolean;
+  openModal: () => void;
+  closeModal: () => void;
+  toggleModal: () => void;
+  message: string;
+  setMessage: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export const useModal = (defaultMessage?: string): UseModalReturn => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState(defaultMessage || '');
 

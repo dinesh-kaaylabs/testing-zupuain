@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
-export const useLocalStorage = <T,>(key: string, initialValue: T) => {
+type UseLocalStorageReturn<T> = readonly [T, (value: T | ((val: T) => T)) => void];
+
+export const useLocalStorage = <T,>(key: string, initialValue: T): UseLocalStorageReturn<T> => {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
