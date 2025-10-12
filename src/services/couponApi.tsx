@@ -3,9 +3,7 @@ import { UserCoupon, ApiResponse } from '../types/api';
 import { withErrorHandling } from '../utils/apiResponseHandler';
 
 export const couponApi = {
-  /**
-   * Get user-specific coupons with usage tracking
-   */
+
   async getUserCoupons(params: {
     user_uid: string;
     is_active?: number;
@@ -25,9 +23,6 @@ export const couponApi = {
     );
   },
 
-  /**
-   * Get all available coupons for guests (no user tracking)
-   */
   async getAllCoupons(params?: {
     is_active?: number;
     searchWord?: string;
@@ -50,9 +45,6 @@ export const couponApi = {
     );
   },
 
-  /**
-   * Validate a coupon code
-   */
   async validateCoupon(params: {
     coupon_code: string;
     user_uid?: string;

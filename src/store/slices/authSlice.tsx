@@ -95,7 +95,6 @@ export const verifyOtp = createAuthThunk<LoginResponse>(
   (params: { otp: string; phone_number: string }) => authApi.verifyOtp(params)
 );
 
-
 // Type-safe helper functions
 const handleLoading = (state: AuthState, loading: boolean, error: string | null = null) => {
   state.loading = loading;
