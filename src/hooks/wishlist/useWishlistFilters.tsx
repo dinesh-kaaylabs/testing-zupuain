@@ -1,28 +1,30 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { Product } from '../../types/api';
 import type { ProductDisplayData } from '../../utils/productUtils';
 
 export type SortOption = 'recent' | 'price-low' | 'price-high' | 'name';
 
-interface UseWishlistFiltersProps {
+interface UseWishlistFiltersParams {
   products: Product[];
   displayDataMap: Map<string, ProductDisplayData>;
 }
 
 interface UseWishlistFiltersReturn {
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  setSearchQuery: (query: string) => void;
   sortBy: SortOption;
-  setSortBy: React.Dispatch<React.SetStateAction<SortOption>>;
-  filteredProducts: Product[];
+  setSortBy: (sort: SortOption) => void;
   sortedProducts: Product[];
 }
 
-export const useWishlistFilters = ({ products, displayDataMap }: UseWishlistFiltersProps): UseWishlistFiltersReturn => {
+export const useWishlistFilters = ({
+  products,
+  displayDataMap,
+}: UseWishlistFiltersParams): UseWishlistFiltersReturn => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
-  // Filter products based on search query
+  // Filter by search query
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
 
@@ -33,47 +35,60 @@ export const useWishlistFilters = ({ products, displayDataMap }: UseWishlistFilt
 
       return (
         displayData.displayName.toLowerCase().includes(query) ||
-        displayData.brand?.toLowerCase().includes(query) ||
-        product.product_name.toLowerCase().includes(query)
+        product.product_uid.toLowerCase().includes(query) ||
+        (displayData.brand && displayData.brand.toLowerCase().includes(query))
       );
     });
   }, [products, searchQuery, displayDataMap]);
 
-  // Sort products
+  // Sort filtered products
   const sortedProducts = useMemo(() => {
-    const productsCopy = [...filteredProducts];
+    const sorted = [...filteredProducts];
 
     switch (sortBy) {
+      case 'recent':
+        // Most recent first - keep original order (wishlist order)
+        return sorted;
+
       case 'price-low':
-        return productsCopy.sort((a, b) => {
-          const priceA = parseFloat(a.price) || 0;
-          const priceB = parseFloat(b.price) || 0;
+        return sorted.sort((a, b) => {
+          const priceA = displayDataMap.get(a.product_uid)?.discountedPrice || 0;
+          const priceB = displayDataMap.get(b.product_uid)?.discountedPrice || 0;
           return priceA - priceB;
         });
+
       case 'price-high':
-        return productsCopy.sort((a, b) => {
-          const priceA = parseFloat(a.price) || 0;
-          const priceB = parseFloat(b.price) || 0;
+        return sorted.sort((a, b) => {
+          const priceA = displayDataMap.get(a.product_uid)?.discountedPrice || 0;
+          const priceB = displayDataMap.get(b.product_uid)?.discountedPrice || 0;
           return priceB - priceA;
         });
+
       case 'name':
-        return productsCopy.sort((a, b) => {
+        return sorted.sort((a, b) => {
           const nameA = displayDataMap.get(a.product_uid)?.displayName || '';
           const nameB = displayDataMap.get(b.product_uid)?.displayName || '';
           return nameA.localeCompare(nameB);
         });
-      case 'recent':
+
       default:
-        return productsCopy; // Keep original order (most recent first)
+        return sorted;
     }
   }, [filteredProducts, sortBy, displayDataMap]);
 
+  const handleSetSearchQuery = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  const handleSetSortBy = useCallback((sort: SortOption) => {
+    setSortBy(sort);
+  }, []);
+
   return {
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: handleSetSearchQuery,
     sortBy,
-    setSortBy,
-    filteredProducts,
+    setSortBy: handleSetSortBy,
     sortedProducts,
   };
 };

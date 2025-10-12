@@ -1,11 +1,12 @@
-import { useAppSelector } from '../redux';
+import { useEffect } from 'react';
+import { useAppSelector, useAppDispatch } from '../redux';
+import { getUserWishlist } from '../../store/slices/wishlistSlice';
 import { useWishlistDisplayData } from './useWishlistDisplayData';
-import { useWishlistFilters } from './useWishlistFilters';
+import { useWishlistFilters, type SortOption } from './useWishlistFilters';
 import { useWishlistSelection } from './useWishlistSelection';
 import { useWishlistBulkActions } from './useWishlistBulkActions';
 import type { Product } from '../../types/api';
 import type { ProductDisplayData } from '../../utils/productUtils';
-import type { SortOption } from './useWishlistFilters';
 
 interface UseWishlistPageReturn {
   wishlistItems: Product[];
@@ -13,9 +14,9 @@ interface UseWishlistPageReturn {
   sortedProducts: Product[];
   displayDataMap: Map<string, ProductDisplayData>;
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  setSearchQuery: (query: string) => void;
   sortBy: SortOption;
-  setSortBy: React.Dispatch<React.SetStateAction<SortOption>>;
+  setSortBy: (sort: SortOption) => void;
   selectedItems: Set<string>;
   selectedCount: number;
   handleToggleSelect: (productUid: string) => void;
@@ -25,22 +26,52 @@ interface UseWishlistPageReturn {
   handleMoveSelectedToCart: () => Promise<void>;
 }
 
+/**
+ * PRIMARY HOOK for Wishlist Page
+ * Composes all wishlist functionality into a single hook
+ * 
+ * Usage:
+ * ```tsx
+ * const {
+ *   wishlistItems,
+ *   loading,
+ *   sortedProducts,
+ *   displayDataMap,
+ *   searchQuery,
+ *   setSearchQuery,
+ *   sortBy,
+ *   setSortBy,
+ *   selectedItems,
+ *   selectedCount,
+ *   handleToggleSelect,
+ *   handleSelectAll,
+ *   handleDeselectAll,
+ *   handleRemoveSelected,
+ *   handleMoveSelectedToCart,
+ * } = useWishlistPage();
+ * ```
+ */
 export const useWishlistPage = (): UseWishlistPageReturn => {
-  // Get wishlist state from Redux
-  const { wishlistItems } = useAppSelector((state) => state.wishlist);
+  const dispatch = useAppDispatch();
+  const wishlistItems = useAppSelector((state) => state.wishlist.wishlistItems);
   const loading = useAppSelector((state) => state.wishlist.loading);
 
-  // Create display data for all products
-  const { displayDataMap } = useWishlistDisplayData({ products: wishlistItems });
+  // Fetch wishlist on mount
+  useEffect(() => {
+    dispatch(getUserWishlist());
+  }, [dispatch]);
 
-  // Handle filtering and sorting
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    sortedProducts,
-  } = useWishlistFilters({ products: wishlistItems, displayDataMap });
+  // Create display data map
+  const { displayDataMap } = useWishlistDisplayData({
+    products: wishlistItems,
+  });
+
+  // Handle search and sort
+  const { searchQuery, setSearchQuery, sortBy, setSortBy, sortedProducts } =
+    useWishlistFilters({
+      products: wishlistItems,
+      displayDataMap,
+    });
 
   // Handle selection
   const {
@@ -50,37 +81,33 @@ export const useWishlistPage = (): UseWishlistPageReturn => {
     handleSelectAll,
     handleDeselectAll,
     clearSelection,
-  } = useWishlistSelection({ products: sortedProducts });
-
-  // Handle bulk actions
-  const { handleRemoveSelected, handleMoveSelectedToCart } = useWishlistBulkActions({
-    selectedItems,
-    products: sortedProducts,
-    displayDataMap,
-    clearSelection,
+  } = useWishlistSelection({
+    products: sortedProducts, // Use sorted products for selection
   });
 
+  // Handle bulk actions
+  const { handleRemoveSelected, handleMoveSelectedToCart } =
+    useWishlistBulkActions({
+      selectedItems,
+      products: wishlistItems,
+      displayDataMap,
+      clearSelection,
+    });
+
   return {
-    // State
     wishlistItems,
     loading,
     sortedProducts,
     displayDataMap,
-    
-    // Search & Sort
     searchQuery,
     setSearchQuery,
     sortBy,
     setSortBy,
-    
-    // Selection
     selectedItems,
     selectedCount,
     handleToggleSelect,
     handleSelectAll,
     handleDeselectAll,
-    
-    // Bulk Actions
     handleRemoveSelected,
     handleMoveSelectedToCart,
   };

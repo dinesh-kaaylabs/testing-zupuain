@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { useCartActions, useWishlistActions } from '../index';
+import { useCartActions } from '../cart/useCartActions';
+import { useWishlistActions } from './useWishlistActions';
 import { useToast } from '../ui/useToast';
 import type { Product } from '../../types/api';
 import type { ProductDisplayData } from '../../utils/productUtils';
 
-interface UseWishlistBulkActionsProps {
+interface UseWishlistBulkActionsParams {
   selectedItems: Set<string>;
   products: Product[];
   displayDataMap: Map<string, ProductDisplayData>;
@@ -21,56 +22,101 @@ export const useWishlistBulkActions = ({
   products,
   displayDataMap,
   clearSelection,
-}: UseWishlistBulkActionsProps): UseWishlistBulkActionsReturn => {
+}: UseWishlistBulkActionsParams): UseWishlistBulkActionsReturn => {
   const { handleAddToCart } = useCartActions();
   const { handleRemoveFromWishlist } = useWishlistActions();
-  const { success } = useToast();
+  const { success, error: errorToast, warning } = useToast();
 
   const handleRemoveSelected = useCallback(async () => {
-    if (selectedItems.size === 0) return;
-
-    const confirmRemove = window.confirm(
-      `Are you sure you want to remove ${selectedItems.size} item(s) from your wishlist?`
-    );
-
-    if (!confirmRemove) return;
-
-    const promises = Array.from(selectedItems).map((uid) =>
-      handleRemoveFromWishlist(uid)
-    );
-
-    await Promise.all(promises);
-    clearSelection();
-    success(`Removed ${selectedItems.size} item(s) from wishlist`);
-  }, [selectedItems, handleRemoveFromWishlist, clearSelection, success]);
-
-  const handleMoveSelectedToCart = useCallback(async () => {
-    if (selectedItems.size === 0) return;
-
-    let successCount = 0;
-    const selectedProducts = products.filter((p) =>
-      selectedItems.has(p.product_uid)
-    );
-
-    for (const product of selectedProducts) {
-      const displayData = displayDataMap.get(product.product_uid);
-      if (!displayData) continue;
-
-      if (!displayData.isAvailable) {
-        continue; // Skip out of stock items
-      }
-
-      const addSuccess = await handleAddToCart(product, displayData, 1);
-      if (addSuccess) {
-        await handleRemoveFromWishlist(product.product_uid);
-        successCount++;
-      }
+    if (selectedItems.size === 0) {
+      warning('No items selected');
+      return;
     }
 
-    clearSelection();
-    
-    if (successCount > 0) {
-      success(`Moved ${successCount} item(s) to cart`);
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${selectedItems.size} item${
+        selectedItems.size > 1 ? 's' : ''
+      } from your wishlist?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const removePromises = Array.from(selectedItems).map((productUid) =>
+        handleRemoveFromWishlist(productUid)
+      );
+
+      await Promise.all(removePromises);
+
+      success(
+        `${selectedItems.size} item${
+          selectedItems.size > 1 ? 's' : ''
+        } removed from wishlist`
+      );
+      clearSelection();
+    } catch (err) {
+      console.error('Failed to remove selected items:', err);
+      errorToast('Failed to remove some items. Please try again.');
+    }
+  }, [
+    selectedItems,
+    handleRemoveFromWishlist,
+    clearSelection,
+    success,
+    errorToast,
+    warning,
+  ]);
+
+  const handleMoveSelectedToCart = useCallback(async () => {
+    if (selectedItems.size === 0) {
+      warning('No items selected');
+      return;
+    }
+
+    try {
+      let movedCount = 0;
+      let skippedCount = 0;
+
+      for (const productUid of selectedItems) {
+        const product = products.find((p) => p.product_uid === productUid);
+        const displayData = displayDataMap.get(productUid);
+
+        if (!product || !displayData) continue;
+
+        // Skip out-of-stock items
+        if (!displayData.isAvailable) {
+          skippedCount++;
+          continue;
+        }
+
+        // Add to cart with quantity 1
+        const cartSuccess = await handleAddToCart(product, displayData, 1);
+        if (cartSuccess) {
+          // Remove from wishlist after successful cart addition
+          await handleRemoveFromWishlist(productUid);
+          movedCount++;
+        }
+      }
+
+      if (movedCount > 0) {
+        success(
+          `${movedCount} item${movedCount > 1 ? 's' : ''} moved to cart`
+        );
+      }
+
+      if (skippedCount > 0) {
+        warning(
+          `${skippedCount} out-of-stock item${
+            skippedCount > 1 ? 's' : ''
+          } skipped`
+        );
+      }
+
+      clearSelection();
+    } catch (err) {
+      console.error('Failed to move selected items to cart:', err);
+      errorToast('Failed to move some items to cart. Please try again.');
     }
   }, [
     selectedItems,
@@ -80,6 +126,8 @@ export const useWishlistBulkActions = ({
     handleRemoveFromWishlist,
     clearSelection,
     success,
+    errorToast,
+    warning,
   ]);
 
   return {

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Product } from '../../types/api';
 
-interface UseWishlistSelectionProps {
+interface UseWishlistSelectionParams {
   products: Product[];
 }
 
@@ -14,13 +14,12 @@ interface UseWishlistSelectionReturn {
   clearSelection: () => void;
 }
 
-export const useWishlistSelection = ({ products }: UseWishlistSelectionProps): UseWishlistSelectionReturn => {
+export const useWishlistSelection = ({
+  products,
+}: UseWishlistSelectionParams): UseWishlistSelectionReturn => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  // Clear selections when products change
-  useEffect(() => {
-    setSelectedItems(new Set());
-  }, [products.length]);
+  const selectedCount = useMemo(() => selectedItems.size, [selectedItems]);
 
   const handleToggleSelect = useCallback((productUid: string) => {
     setSelectedItems((prev) => {
@@ -35,7 +34,8 @@ export const useWishlistSelection = ({ products }: UseWishlistSelectionProps): U
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    setSelectedItems(new Set(products.map((p) => p.product_uid)));
+    const allIds = new Set(products.map((product) => product.product_uid));
+    setSelectedItems(allIds);
   }, [products]);
 
   const handleDeselectAll = useCallback(() => {
@@ -48,7 +48,7 @@ export const useWishlistSelection = ({ products }: UseWishlistSelectionProps): U
 
   return {
     selectedItems,
-    selectedCount: selectedItems.size,
+    selectedCount,
     handleToggleSelect,
     handleSelectAll,
     handleDeselectAll,
