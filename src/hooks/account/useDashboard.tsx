@@ -45,8 +45,11 @@ export const useDashboard = (): UseDashboardReturn => {
 
   const stats = useMemo(() => {
     const totalSpent = orders
-      .filter(o => o.milestone_code === DEFAULTS.CHECKOUT_MILESTONE_CODE)
-      .reduce((sum, o) => sum + o.total_price, 0);
+      .filter(o => {
+        const status = o.milestone_code?.toLowerCase();
+        return status !== 'can' && status !== 'chk';
+      })
+      .reduce((sum, o) => sum + (o.total_price || 0), 0);
     
     return {
       totalOrders: totalOrderCount || orders.length,

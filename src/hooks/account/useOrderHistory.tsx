@@ -209,7 +209,7 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
       const newOrder = filters.sortBy.split('_')[1] === 'asc' ? 'desc' : 'asc';
       setFilters(prev => ({ ...prev, sortBy: `${field}_${newOrder}` as OrderFilters['sortBy'] }));
     },
-    handleViewDetails: (order: OrderListItem) => window.location.href = `/order-tracking/${order.order_uid}`,
+    handleViewDetails: (order: OrderListItem) => window.location.href = `/orders/${order.order_uid}`,
     handleReorder: (order: OrderListItem) => console.log('Reordering:', order.order_uid),
     hasOrders: orderState.orders.length > 0,
     orderStatistics,

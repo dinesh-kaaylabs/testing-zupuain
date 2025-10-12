@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProductDisplayData } from '../../utils/productUtils';
 
 interface ProductInfoProps {
@@ -14,6 +14,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   averageRating,
   totalReviews,
 }) => {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   return (
     <div className="space-y-4">
       {/* Product Name */}
@@ -144,11 +145,38 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
       </div>
 
-      {/* Short Description */}
+      {/* Short Description with Read More */}
       {displayData.description && (
-        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-          {displayData.description}
-        </p>
+        <div className="relative">
+          <div
+            className={`text-gray-600 dark:text-gray-400 leading-relaxed prose dark:prose-invert max-w-none ${
+              !isDescriptionExpanded ? 'line-clamp-3' : ''
+            }`}
+            dangerouslySetInnerHTML={{ __html: displayData.description }}
+          />
+          {displayData.description.length > 150 && (
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm transition-colors flex items-center gap-1"
+            >
+              {isDescriptionExpanded ? (
+                <>
+                  <span>Read Less</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <span>Read More</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -42,7 +42,7 @@ export const useAppRoutes = (): RouteConfig[] => {
     { path: "/account", element: withSEO(pages.account, { title: "My Account - LuxeHome", description: "Manage your account and order history.", noindex: true }), fallback: <PageSkeleton type="account" /> },
     { path: "/login", element: <pages.login />, fallback: <LoadingSpinner text="Loading login..." />, layout: false },
     { path: "/register", element: <pages.register />, fallback: <LoadingSpinner text="Loading registration..." />, layout: false },
-    { path: "/order-tracking/:orderId", element: <pages.tracking />, fallback: <LoadingSpinner text="Loading order..." /> },
+    { path: "/orders/:orderId", element: <pages.tracking />, fallback: <LoadingSpinner text="Loading order..." /> },
     { path: "/wishlist", element: <pages.wishlist />, fallback: <LoadingSpinner text="Loading wishlist..." /> },
     { path: "*", element: <pages.notFound />, fallback: <LoadingSpinner text="Page not found..." /> },
   ], []);
