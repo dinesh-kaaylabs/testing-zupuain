@@ -17,6 +17,7 @@ export const DEFAULTS = {
   PLACEHOLDER_IMAGE: '/placeholder-image.jpg',
   MAX_PRODUCT_NAME_LENGTH: 50,
   CHECKOUT_MILESTONE_CODE: 'CHK',
+  RAZOR_PAYMENT_FAILED_MESSAGE: 'Payment failed. Try different Payment method. If money deducted it will be auto refunded.',
 } as const;
 
 export const PRODUCT_OPTIONS = {

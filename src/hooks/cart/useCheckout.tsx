@@ -1,18 +1,19 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux';
 import { useToast } from '../ui/useToast';
 import { fetchUserAddresses } from '../../store/slices/addressSlice';
-import { fetchPaymentMethods, createOrder, setSelectedPaymentMethod } from '../../store/slices/orderSlice';
+import { fetchPaymentMethods, createOrder, setSelectedPaymentMethod, verifyRazorpayPayment } from '../../store/slices/orderSlice';
 import { fetchDeliverySlots, setSelectedDate, setSelectedSlot } from '../../store/slices/deliverySlotSlice';
 import { fetchBag } from '../../store/slices/cartSlice';
-import { Address, PaymentMethod, DeliverySlot, CreateOrderBodyRequest, CreateOrderUserBagItem } from '../../types/api';
+import { Address, PaymentMethod, DeliverySlot, CreateOrderBodyRequest, CreateOrderUserBagItem, CreateOrderResponse } from '../../types/api';
 import { useCoupon } from './useCoupon';
 import { usePricing } from './usePricing';
 import { useDerivedCartItems } from '../../utils/cartDataHelpers';
 import { decodeOrderDataFromUrl } from '../../utils/orderUtils';
 import { DecodedOrderData, BagDetail, CartItem, Coupon } from '../../types/api';
 import { CouponDiscountResult } from '../../utils/couponUtils';
+import { DEFAULTS } from '../../utils/constants';
 
 export type CheckoutStep = 'address' | 'delivery' | 'payment' | 'review' | 'confirmation';
 
@@ -104,10 +105,35 @@ interface UseCheckoutReturn {
   setTermsAccepted: (accepted: boolean) => void;
 }
 
+// Memoized selector for better performance
+const selectCheckoutData = (state: any) => ({
+  isAuthenticated: state.auth.isAuthenticated,
+  user: state.auth.user,
+  addresses: state.address.addresses,
+  addressLoading: state.address.loading,
+  addressError: state.address.error,
+  bags: state.cart.bags,
+  guestItems: state.cart.guestItems,
+  totalAmount: state.cart.totalAmount,
+  defaultStore: state.store.defaultStore,
+  defaultTenant: state.tenant.defaultTenant,
+  deliverySlots: state.deliverySlot.availableSlots,
+  reduxSelectedDate: state.deliverySlot.selectedDate,
+  reduxSelectedSlot: state.deliverySlot.selectedSlot,
+  deliveryLoading: state.deliverySlot.loading,
+  deliveryError: state.deliverySlot.error,
+  paymentMethods: state.order.paymentMethods,
+  reduxSelectedPayment: state.order.selectedPaymentMethod,
+  paymentMethodsState: state.order.paymentMethodsState,
+  baseDeliveryCharge: state.deliveryCharge.deliveryCharge?.delivery_charge || 0,
+  cartLoading: state.cart.loading,
+});
+
 export const useCheckout = (): UseCheckoutReturn => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
+  const razorpayInitialized = useRef(false);
 
   const {
     isAuthenticated, user, addresses, addressLoading, addressError,
@@ -115,30 +141,12 @@ export const useCheckout = (): UseCheckoutReturn => {
     deliverySlots, reduxSelectedDate, reduxSelectedSlot, deliveryLoading, deliveryError,
     paymentMethods, reduxSelectedPayment, paymentMethodsState, baseDeliveryCharge,
     cartLoading,
-  } = useAppSelector((state) => ({
-    isAuthenticated: state.auth.isAuthenticated,
-    user: state.auth.user,
-    addresses: state.address.addresses,
-    addressLoading: state.address.loading,
-    addressError: state.address.error,
-    bags: state.cart.bags,
-    guestItems: state.cart.guestItems,
-    totalAmount: state.cart.totalAmount,
-    defaultStore: state.store.defaultStore,
-    defaultTenant: state.tenant.defaultTenant,
-    deliverySlots: state.deliverySlot.availableSlots,
-    reduxSelectedDate: state.deliverySlot.selectedDate,
-    reduxSelectedSlot: state.deliverySlot.selectedSlot,
-    deliveryLoading: state.deliverySlot.loading,
-    deliveryError: state.deliverySlot.error,
-    paymentMethods: state.order.paymentMethods,
-    reduxSelectedPayment: state.order.selectedPaymentMethod,
-    paymentMethodsState: state.order.paymentMethodsState,
-    baseDeliveryCharge: state.deliveryCharge.deliveryCharge?.delivery_charge || 0,
-    cartLoading: state.cart.loading,
-  }));
+  } = useAppSelector(selectCheckoutData);
 
-  const isDeliverySlotActive = defaultTenant?.setting?.deliveryslot_management_active ?? false;
+  const isDeliverySlotActive = useMemo(
+    () => defaultTenant?.setting?.deliveryslot_management_active ?? false,
+    [defaultTenant?.setting?.deliveryslot_management_active]
+  );
 
   const STEP_ORDER = useMemo((): CheckoutStep[] => {
     const steps: CheckoutStep[] = ['address'];
@@ -146,6 +154,8 @@ export const useCheckout = (): UseCheckoutReturn => {
     steps.push('payment', 'review', 'confirmation');
     return steps;
   }, [isDeliverySlotActive]);
+
+  // Local state
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('address');
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [selectedDeliveryDate, setSelectedDeliveryDateLocal] = useState<string | null>(null);
@@ -156,9 +166,13 @@ export const useCheckout = (): UseCheckoutReturn => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [orderConfirmationData, setOrderConfirmationData] = useState<DecodedOrderData | null>(null);
 
-  const isGuest = !isAuthenticated;
+  // Derived values - memoized for performance
+  const isGuest = useMemo(() => !isAuthenticated, [isAuthenticated]);
   const cartItems = useDerivedCartItems(isGuest, guestItems, bags);
-  const isOnlinePayment = reduxSelectedPayment?.slug === 'razorpay' || reduxSelectedPayment?.slug === 'online';
+  const isOnlinePayment = useMemo(
+    () => reduxSelectedPayment?.slug === 'razorpay' || reduxSelectedPayment?.slug === 'online',
+    [reduxSelectedPayment?.slug]
+  );
   const couponConfig = useMemo(() => ({
     isAuthenticated,
     userUid: user?.user_uid,
@@ -180,18 +194,34 @@ export const useCheckout = (): UseCheckoutReturn => {
 
   const { pricing, pricingSummary, formatCurrency } = usePricing(pricingConfig);
 
+  // Step management calculations
+  const stepIndex = useMemo(() => STEP_ORDER.indexOf(currentStep), [STEP_ORDER, currentStep]);
+  const isFirstStep = useMemo(() => stepIndex === 0, [stepIndex]);
+  const isLastStep = useMemo(() => currentStep === 'confirmation', [currentStep]);
+  const totalSteps = useMemo(() => STEP_ORDER.length - 1, [STEP_ORDER]);
+
+  // Authentication check
   useEffect(() => {
-    if (!isAuthenticated) navigate('/login?redirect=/checkout');
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout');
+    }
   }, [isAuthenticated, navigate]);
   
-  // Fetch initial data on mount
+  // Fetch initial data on mount - optimized with single effect
   useEffect(() => {
     if (!isAuthenticated || !defaultStore?.store_uid) return;
-    dispatch(fetchUserAddresses());
-    dispatch(fetchPaymentMethods('B2C'));
-    dispatch(fetchDeliverySlots({}));
-    dispatch(fetchBag(defaultStore.store_uid));
-  }, [dispatch, isAuthenticated, defaultStore]);
+
+    const fetchData = async () => {
+      await Promise.all([
+        dispatch(fetchUserAddresses()),
+        dispatch(fetchPaymentMethods('B2C')),
+        dispatch(fetchDeliverySlots({})),
+        dispatch(fetchBag(defaultStore.store_uid)),
+      ]);
+    };
+
+    fetchData();
+  }, [dispatch, isAuthenticated, defaultStore?.store_uid]);
 
   // Redirect if cart is empty after data loads
   useEffect(() => {
@@ -204,23 +234,22 @@ export const useCheckout = (): UseCheckoutReturn => {
     }
   }, [cartLoading, cartItems.length, currentStep, navigate, showError]);
 
+  // Auto-select default address
   useEffect(() => {
-    if (addresses.length && !selectedAddress) {
-      const defaultAddress = addresses.find(addr => addr.is_default);
-      setSelectedAddress(defaultAddress || addresses[0]);
+    if (addresses.length > 0 && !selectedAddress) {
+      const defaultAddress = addresses.find((addr: Address) => addr.is_default) || addresses[0];
+      setSelectedAddress(defaultAddress);
     }
   }, [addresses, selectedAddress]);
 
+  // Auto-select default payment method
   useEffect(() => {
-    if (paymentMethods.length && !reduxSelectedPayment) {
+    if (paymentMethods.length > 0 && !reduxSelectedPayment) {
       dispatch(setSelectedPaymentMethod(paymentMethods[0]));
     }
   }, [paymentMethods, reduxSelectedPayment, dispatch]);
 
-  const stepIndex = STEP_ORDER.indexOf(currentStep);
-  const isFirstStep = stepIndex === 0;
-  const isLastStep = currentStep === 'confirmation';
-  const totalSteps = STEP_ORDER.length - 1;
+  // Validation logic - memoized callback
   const validateStep = useCallback((step: CheckoutStep, showErrorMsg = false): boolean => {
     let isValid = true;
     let msg = '';
@@ -263,8 +292,9 @@ export const useCheckout = (): UseCheckoutReturn => {
       cartItems.length, isDeliverySlotActive, showError, termsAccepted]);
 
   const validateCurrentStep = useCallback(() => validateStep(currentStep, true), [currentStep, validateStep]);
-  const canProceedToNextStep = validateStep(currentStep, false);
+  const canProceedToNextStep = useMemo(() => validateStep(currentStep, false), [currentStep, validateStep]);
 
+  // Step navigation callbacks
   const goToNextStep = useCallback(() => {
     if (!validateCurrentStep()) return;
 
@@ -280,9 +310,15 @@ export const useCheckout = (): UseCheckoutReturn => {
     setCurrentStep(STEP_ORDER[prevIndex]);
   }, [stepIndex, isFirstStep, STEP_ORDER]);
 
-  const goToStep = useCallback((step: CheckoutStep) => setCurrentStep(step), []);
+  const goToStep = useCallback((step: CheckoutStep) => {
+    setCurrentStep(step);
+  }, []);
+
+  // Data refresh callbacks
   const refreshAddresses = useCallback(() => { 
-    if (isAuthenticated) dispatch(fetchUserAddresses()); 
+    if (isAuthenticated) {
+      dispatch(fetchUserAddresses());
+    }
   }, [dispatch, isAuthenticated]);
 
   const handleSetSelectedDeliveryDate = useCallback((date: string | null) => {
@@ -297,14 +333,134 @@ export const useCheckout = (): UseCheckoutReturn => {
     dispatch(setSelectedSlot(slot));
   }, [dispatch]);
 
-  const refreshDeliverySlots = useCallback(() => dispatch(fetchDeliverySlots({})), [dispatch]);
-  const handleSetPaymentMethod = useCallback((method: PaymentMethod | null) => { 
-    if (method) dispatch(setSelectedPaymentMethod(method)); 
+  const refreshDeliverySlots = useCallback(() => {
+    dispatch(fetchDeliverySlots({}));
   }, [dispatch]);
-  const refreshPaymentMethods = useCallback(() => dispatch(fetchPaymentMethods('B2C')), [dispatch]);
+
+  const handleSetPaymentMethod = useCallback((method: PaymentMethod | null) => { 
+    if (method) {
+      dispatch(setSelectedPaymentMethod(method));
+    }
+  }, [dispatch]);
+
+  const refreshPaymentMethods = useCallback(() => {
+    dispatch(fetchPaymentMethods('B2C'));
+  }, [dispatch]);
+
+  // Handle order confirmation and redirect
+  const handleOrderConfirmation = useCallback(async (result: CreateOrderResponse) => {
+    try {
+      // Decode order data from URL
+      if (result.urlLink) {
+        const decodedData = decodeOrderDataFromUrl(result.urlLink);
+        if (decodedData) {
+          setOrderConfirmationData(decodedData);
+          console.log('📦 Order confirmation data decoded:', decodedData);
+        }
+      }
+
+      // Refresh cart to clear items
+      if (defaultStore?.store_uid) {
+        await dispatch(fetchBag(defaultStore.store_uid)).unwrap();
+      }
+
+      success('Order placed successfully!');
+      setCurrentStep('confirmation');
+    } catch (error) {
+      console.error('Error in order confirmation:', error);
+      showError('Order placed but failed to refresh cart');
+      setCurrentStep('confirmation');
+    }
+  }, [defaultStore?.store_uid, dispatch, success, showError]);
+
+  // Handle Razorpay payment
+  const handleRazorpayPayment = useCallback((orderData: CreateOrderResponse, paymentSlug: string) => {
+    // Check if Razorpay is loaded
+    if (typeof window.Razorpay === 'undefined') {
+      showError('Payment gateway not loaded. Please refresh and try again.');
+      setOrderLoading(false);
+      return;
+    }
+
+    const rzpKey = defaultTenant?.setting?.razorpay_public_token || '';
+    const payOrderId = orderData.data.id || '';
+
+    const options = {
+      key: rzpKey,
+      amount: pricing.total * 100,
+      currency: DEFAULTS.CURRENCY_NAME,
+      order_id: payOrderId,
+      description: 'Payment for product',
+      handler: async (response: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      }) => {
+        try {
+          console.log('🚀 Razorpay payment response:', response);
+          
+          const verificationResult = await dispatch(verifyRazorpayPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            slug: paymentSlug,
+          })).unwrap();
+
+          console.log('🚀 Razorpay verification result:', verificationResult);
+
+          if (verificationResult.success) {
+            await handleOrderConfirmation(orderData);
+          } else {
+            showError(verificationResult.data?.message || 'Payment verification failed');
+            setOrderLoading(false);
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Payment verification failed';
+          showError(errorMsg);
+          setOrderLoading(false);
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          showError('Payment cancelled');
+          setOrderLoading(false);
+        },
+      },
+    };
+
+    const razorpayInstance = new window.Razorpay(options);
+    
+    razorpayInstance.on('payment.failed', () => {
+      showError(DEFAULTS.RAZOR_PAYMENT_FAILED_MESSAGE || 'Payment failed');
+      setOrderLoading(false);
+    });
+
+    razorpayInstance.open();
+  }, [defaultTenant?.setting?.razorpay_public_token, pricing.total, dispatch, showError, handleOrderConfirmation]);
+  // Build user bag items for order
+  const buildUserBagItems = useCallback((items: (BagDetail | CartItem)[]): CreateOrderUserBagItem[] => {
+    return items.map(item => {
+      const isBag = 'bag_detail_id' in item;
+      const product = isBag ? item.zm_products?.[0] : null;
+      
+      return {
+        product_uid: item.product_uid,
+        stock: isBag ? product?.stock?.toString() || null : item.stock?.toString() || null,
+        product_count: item.product_count,
+        price: isBag ? item.selling_price.toString() : item.price,
+        track_inventory: isBag ? product?.track_inventory || false : item.track_inventory,
+        product_status: isBag ? product?.product_status || true : item.product_status,
+        category_uid: isBag ? product?.category_uid || '' : item.category_uid,
+        min_order_quantity: isBag ? product?.min_order_quantity || null : item.min_order_quantity || null,
+      };
+    });
+  }, []);
+
+  // Handle place order
   const handlePlaceOrder = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
+    // Validate required fields
     const requiredFields = isDeliverySlotActive
       ? [selectedAddress, selectedDeliveryDate, selectedDeliverySlot, reduxSelectedPayment, defaultStore?.store_uid]
       : [selectedAddress, reduxSelectedPayment, defaultStore?.store_uid];
@@ -318,22 +474,10 @@ export const useCheckout = (): UseCheckoutReturn => {
     setOrderError(null);
 
     try {
-      const userBag: CreateOrderUserBagItem[] = cartItems.map(item => {
-        const isBag = 'bag_detail_id' in item;
-        const product = isBag ? item.zm_products?.[0] : null;
-        
-        return {
-          product_uid: item.product_uid,
-          stock: isBag ? product?.stock?.toString() || null : item.stock?.toString() || null,
-          product_count: item.product_count,
-          price: isBag ? item.selling_price.toString() : item.price,
-          track_inventory: isBag ? product?.track_inventory || false : item.track_inventory,
-          product_status: isBag ? product?.product_status || true : item.product_status,
-          category_uid: isBag ? product?.category_uid || '' : item.category_uid,
-          min_order_quantity: isBag ? product?.min_order_quantity || null : item.min_order_quantity || null,
-        };
-      });
+      const userBag = buildUserBagItems(cartItems);
+
       const orderRequest: CreateOrderBodyRequest = {
+        // Pricing details
         cod_charge: reduxSelectedPayment?.slug === 'cod' ? pricing.codCharge || 0 : 0,
         coupon_amount: appliedDiscount?.discountAmount || 0,
         delivery_charge: pricing.deliveryCharge,
@@ -341,16 +485,22 @@ export const useCheckout = (): UseCheckoutReturn => {
         discount_percent: appliedCoupon?.coupon_percentage || 0,
         final_price: pricing.total,
         price: pricing.subtotal,
+        
+        // Order metadata
         slugData: 'CART',
         userBag,
         buyer_gst_number: null,
         checkout_flag: 1,
         customer_type_id: 1,
+        
+        // Delivery details
         dayName: isDeliverySlotActive && selectedDeliverySlot ? (selectedDeliverySlot.dayName || '') : '',
         delivery_address_id: selectedAddress!.b2c_address_id,
         delivery_date: isDeliverySlotActive && selectedDeliveryDate ? selectedDeliveryDate : '',
-        delivery_time: isDeliverySlotActive && selectedDeliverySlot ? selectedDeliverySlot.delivery_time || '' : '',
+        delivery_time: isDeliverySlotActive && selectedDeliverySlot ? (selectedDeliverySlot.delivery_time || '') : '',
         order_notes: null,
+        
+        // Payment details
         payment_method_id: reduxSelectedPayment!.payment_method_id,
         secured: true,
         slug: reduxSelectedPayment!.slug,
@@ -359,36 +509,49 @@ export const useCheckout = (): UseCheckoutReturn => {
 
       const result = await dispatch(createOrder(orderRequest)).unwrap();
       console.log('🚀 Order creation result:', result);
-      if (result?.order_uid) {
-        setOrderUid(result.order_uid);
-        
-        // Decode order confirmation data from urlLink
-        if (result.urlLink) {
-          const decodedData = decodeOrderDataFromUrl(result.urlLink);
-          if (decodedData) {
-            setOrderConfirmationData(decodedData);
-            console.log('📦 Order confirmation data decoded:', decodedData);
-          }
-        }
-        
-        // Refresh cart to clear items
-        if (defaultStore?.store_uid) {
-          await dispatch(fetchBag(defaultStore.store_uid)).unwrap();
-        }
-        success('Order placed successfully!');
-        setCurrentStep('confirmation');
+
+      if (!result?.order_uid) {
+        throw new Error('Order creation failed - no order UID returned');
+      }
+
+      setOrderUid(result.order_uid);
+
+      // Handle payment based on method
+      if (reduxSelectedPayment?.slug === 'razorpay') {
+        handleRazorpayPayment(result, reduxSelectedPayment.slug);
       } else {
-        throw new Error('Order creation failed');
+        await handleOrderConfirmation(result);
+        setOrderLoading(false);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error) || 'Failed to place order. Please try again.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to place order. Please try again.';
+      
+      console.error('Order placement error:', error);
       setOrderError(errorMessage);
       showError(errorMessage);
-    } finally {
       setOrderLoading(false);
     }
-  }, [validateCurrentStep, selectedAddress, selectedDeliveryDate, selectedDeliverySlot, reduxSelectedPayment, 
-      defaultStore, cartItems, appliedDiscount, appliedCoupon, pricing, dispatch, success, showError, isDeliverySlotActive]);
+  }, [
+    validateCurrentStep,
+    selectedAddress,
+    selectedDeliveryDate,
+    selectedDeliverySlot,
+    reduxSelectedPayment,
+    defaultStore,
+    cartItems,
+    appliedDiscount,
+    appliedCoupon,
+    pricing,
+    dispatch,
+    showError,
+    isDeliverySlotActive,
+    buildUserBagItems,
+    handleRazorpayPayment,
+    handleOrderConfirmation,
+  ]);
+  // Reset checkout state
   const resetCheckout = useCallback(() => {
     setCurrentStep('address');
     setSelectedAddress(null);
@@ -402,21 +565,81 @@ export const useCheckout = (): UseCheckoutReturn => {
     dispatch(setSelectedSlot(null));
   }, [dispatch]);
 
-  return {
-    currentStep, goToNextStep, goToPreviousStep, goToStep, canProceedToNextStep,
-    isFirstStep, isLastStep, stepIndex, totalSteps, availableSteps: STEP_ORDER, isDeliverySlotActive,
-    addresses, selectedAddress, addressLoading, addressError, setSelectedAddress, refreshAddresses,
-    deliverySlots, selectedDeliveryDate: selectedDeliveryDate || reduxSelectedDate,
+  // Return all checkout functionality
+  return useMemo(() => ({
+    // Step management
+    currentStep,
+    goToNextStep,
+    goToPreviousStep,
+    goToStep,
+    canProceedToNextStep,
+    isFirstStep,
+    isLastStep,
+    stepIndex,
+    totalSteps,
+    availableSteps: STEP_ORDER,
+    isDeliverySlotActive,
+
+    // Address management
+    addresses,
+    selectedAddress,
+    addressLoading,
+    addressError,
+    setSelectedAddress,
+    refreshAddresses,
+
+    // Delivery management
+    deliverySlots,
+    selectedDeliveryDate: selectedDeliveryDate || reduxSelectedDate,
     selectedDeliverySlot: selectedDeliverySlot || reduxSelectedSlot,
-    deliveryLoading, deliveryError, setSelectedDeliveryDate: handleSetSelectedDeliveryDate,
-    setSelectedDeliverySlot: handleSetSelectedDeliverySlot, refreshDeliverySlots,
-    paymentMethods, selectedPaymentMethod: reduxSelectedPayment,
-    paymentLoading: paymentMethodsState.loading, paymentError: paymentMethodsState.error,
-    setPaymentMethod: handleSetPaymentMethod, refreshPaymentMethods,
+    deliveryLoading,
+    deliveryError,
+    setSelectedDeliveryDate: handleSetSelectedDeliveryDate,
+    setSelectedDeliverySlot: handleSetSelectedDeliverySlot,
+    refreshDeliverySlots,
+
+    // Payment management
+    paymentMethods,
+    selectedPaymentMethod: reduxSelectedPayment,
+    paymentLoading: paymentMethodsState.loading,
+    paymentError: paymentMethodsState.error,
+    setPaymentMethod: handleSetPaymentMethod,
+    refreshPaymentMethods,
+
+    // Cart & Pricing
+    cartItems,
+    pricing,
+    pricingSummary,
+    appliedCoupon,
+    appliedDiscount,
+    handleApplyCoupon,
+    handleRemoveCoupon,
+    formatCurrency,
+
+    // Order management
+    orderUid,
+    orderLoading,
+    orderError,
+    orderConfirmationData,
+    handlePlaceOrder,
+    validateCurrentStep,
+    resetCheckout,
+
+    // Review state
+    termsAccepted,
+    setTermsAccepted,
+  }), [
+    currentStep, goToNextStep, goToPreviousStep, goToStep, canProceedToNextStep,
+    isFirstStep, isLastStep, stepIndex, totalSteps, STEP_ORDER, isDeliverySlotActive,
+    addresses, selectedAddress, addressLoading, addressError, refreshAddresses,
+    deliverySlots, selectedDeliveryDate, reduxSelectedDate, selectedDeliverySlot, reduxSelectedSlot,
+    deliveryLoading, deliveryError, handleSetSelectedDeliveryDate, handleSetSelectedDeliverySlot, refreshDeliverySlots,
+    paymentMethods, reduxSelectedPayment, paymentMethodsState.loading, paymentMethodsState.error,
+    handleSetPaymentMethod, refreshPaymentMethods,
     cartItems, pricing, pricingSummary, appliedCoupon, appliedDiscount,
     handleApplyCoupon, handleRemoveCoupon, formatCurrency,
     orderUid, orderLoading, orderError, orderConfirmationData,
     handlePlaceOrder, validateCurrentStep, resetCheckout,
-    termsAccepted, setTermsAccepted,
-  };
+    termsAccepted,
+  ]);
 };

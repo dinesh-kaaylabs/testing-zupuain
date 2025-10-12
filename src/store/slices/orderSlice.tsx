@@ -50,7 +50,7 @@ const createOrderThunk = (name: string, apiCall: (...args: any[]) => Promise<any
     }
   });
 
-  const createOrderResponseThunk = (name: string, apiCall: (...args: any[]) => Promise<any>) =>
+const createOrderResponseThunk = (name: string, apiCall: (...args: any[]) => Promise<any>) =>
     createAsyncThunk(name, async (params: any, { rejectWithValue }) => {
       try {
         const response = await apiCall(params)
@@ -100,6 +100,11 @@ export const fetchOrderSummary = createOrderThunk(
 export const createOrder = createOrderResponseThunk(
   'order/createOrder',
   orderApi.createCartOrder
+);
+
+export const verifyRazorpayPayment = createOrderResponseThunk(
+  'order/verifyRazorpayPayment',
+  orderApi.verifyRazorpayPayment
 );
 
 // Helper function for loading states
