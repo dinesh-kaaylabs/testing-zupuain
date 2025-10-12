@@ -161,14 +161,19 @@ interface DashboardOverviewProps {
 ```typescript
 const { stats, recentOrders, pendingOrdersCount, loading, hasDefaultAddress } = useDashboard();
 
-// CRITICAL: stats.wishlistItems is a NUMBER (count), not an array!
+// ⚠️ CRITICAL DISTINCTION - READ CAREFULLY!
+// stats.wishlistItems is a NUMBER (count), not an array!
 stats: {
   totalOrders: number;
   totalSpent: number;
   savedAddresses: number;
-  wishlistItems: number; // ← NUMBER, not array!
+  wishlistItems: number; // ← NUMBER (count), not array!
 }
 ```
+
+> **🚨 IMPORTANT**: Do NOT confuse `stats.wishlistItems` (NUMBER) with the `wishlistItems` array used in WishlistOverview component. They are different:
+> - **Dashboard**: `stats.wishlistItems` = `number` (count from useDashboard)
+> - **Wishlist Section**: `wishlistItems` = `Product[]` (array from Redux)
 
 **Features**:
 - ✅ 4 clickable stat cards (Orders, Spent, Addresses, Wishlist)
@@ -210,12 +215,17 @@ const {
 **Features**:
 - ✅ Display/Edit mode toggle
 - ✅ Profile image upload (5MB max, preview)
-- ✅ 3 form fields (name editable, email editable, phone readonly)
+- ✅ 3 form fields:
+  - **user_name**: ✏️ Editable
+  - **email_address**: ✏️ Editable
+  - **phone_number**: 🔒 **Read-only** (cannot be edited)
 - ✅ Real-time validation
 - ✅ hasChanges detection
 - ✅ Save/Cancel buttons
 - ✅ Toast notifications
 - ✅ Loading states
+
+> **📝 Note**: Phone number is read-only for security reasons. Users must contact support to change their phone number.
 
 **Validation**: Uses `validateUserName`, `validateEmail`, `validatePhoneNumber` from utils.
 

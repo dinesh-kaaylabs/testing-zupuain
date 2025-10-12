@@ -281,13 +281,66 @@ User submits → handleSubmit() → Validate all fields
 ```
 
 **Auto-Login Flow**:
+```typescript
+// Inside useRegistration hook's handleSubmit
+const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
+  e.preventDefault();
+  
+  // 1. Validate all fields
+  const validationResult = validateRegistrationForm(formData);
+  if (!validationResult.isValid) {
+    setErrors(validationResult.errors);
+    return false;
+  }
+  
+  setLoading(true);
+  
+  try {
+    // 2. Register user
+    const registerResult = await dispatch(registerUser({
+      user_name: formData.user_name,
+      phone_number: formData.phone_number,
+      email_address: formData.email_address,
+      password: formData.password,
+    })).unwrap();
+    
+    // 3. If registration succeeds, auto-login
+    if (registerResult.success) {
+      try {
+        const loginResult = await dispatch(loginUser({
+          email_address: formData.email_address,
+          password: formData.password,
+        })).unwrap();
+        
+        // 4a. Auto-login success
+        if (loginResult.success) {
+          success(`Welcome, ${loginResult.user.user_name}! 🎉`);
+          return true; // Trigger success view
+        }
+      } catch (loginError) {
+        // 4b. Auto-login failed (but registration succeeded)
+        warning('Registration successful! Please log in manually.');
+        return true; // Still show success view
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    // 5. Registration failed
+    error('Registration failed. Please try again.');
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 ```
-1. dispatch(registerUser(...))
-2. If success → dispatch(loginUser(...))
-3. If auto-login success → Toast: "Welcome, {name}!"
-4. If auto-login fails → Toast: "Registration successful! Please log in manually."
-5. Return true to trigger success view
-```
+
+**Flow Summary**:
+1. ✅ `dispatch(registerUser(...))` - Create account
+2. ✅ If success → `dispatch(loginUser(...))` - Auto-login attempt
+3. ✅ If auto-login success → Toast: "Welcome, {name}! 🎉"
+4. ⚠️ If auto-login fails → Toast: "Registration successful! Please log in manually."
+5. ✅ Return `true` to trigger success view with countdown
 
 ---
 
@@ -519,24 +572,52 @@ validateRegistrationForm(formData: FormData): { isValid: boolean; errors: FormEr
 - ✅ "Go to Home Now" button (manual redirect)
 - ✅ Quick tips for getting started
 
-**Countdown Timer**:
+**Countdown Timer Implementation**:
 ```typescript
+// In RegisterPage.tsx
+const [registrationSuccess, setRegistrationSuccess] = useState(false);
+const [countdown, setCountdown] = useState(5);
+
+// Countdown effect - starts when registrationSuccess becomes true
 useEffect(() => {
-  if (registrationSuccess) {
+  if (registrationSuccess && countdown > 0) {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate('/');
+          navigate('/'); // Navigate when countdown reaches 0
           return 0;
         }
-        return prev - 1;
+        return prev - 1; // Decrement every second
       });
-    }, 1000);
+    }, 1000); // 1 second interval
 
-    return () => clearInterval(timer);
+    return () => clearInterval(timer); // Cleanup on unmount
   }
-}, [registrationSuccess, navigate]);
+}, [registrationSuccess, countdown, navigate]);
+
+// Manual navigation button
+const handleGoHomeNow = () => {
+  navigate('/'); // Skip countdown
+};
+```
+
+**Success View Display**:
+```tsx
+{registrationSuccess && (
+  <div className="text-center">
+    <div className="animate-bounce-slow">
+      <CheckCircle className="w-24 h-24 text-green-500 mx-auto" />
+    </div>
+    <h2 className="text-3xl font-bold mt-6">Registration Successful! ✨</h2>
+    <p className="text-gray-600 mt-2">
+      Redirecting to home in {countdown} second{countdown !== 1 ? 's' : ''}...
+    </p>
+    <button onClick={handleGoHomeNow} className="mt-6 btn-primary">
+      Go to Home Now
+    </button>
+  </div>
+)}
 ```
 
 ---

@@ -48,8 +48,27 @@ const handleTabChange = (tab: AuthTab) => {
   setTimeout(() => {
     setActiveTab(tab);
     setIsTransitioning(false);
-  }, 150);
+  }, 150); // ← 150ms delay for smooth fade transition
 };
+```
+
+**Guest Cart Badge**:
+```tsx
+{hasGuestItems && (
+  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+    <div className="flex items-center gap-3">
+      <ShoppingBag className="w-5 h-5 text-blue-600" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+          You have {guestItemCount} item{guestItemCount !== 1 ? 's' : ''} in your cart
+        </p>
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          Sign in to save your cart
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 ```
 
 ### 2. **LoginForm.tsx** (Email/Password Form)
@@ -143,12 +162,25 @@ const onSubmit = async (e: React.FormEvent) => {
   - **OTP Field** (shown after OTP sent):
     - Hash icon (left)
     - 6-digit input
-    - Large, centered, monospace font
-    - Tracking widest (letter spacing)
+    - **Large, centered, monospace font** (`font-mono text-2xl text-center`)
+    - **Tracking widest** (letter spacing: `tracking-widest`)
+    - **inputMode="numeric"** for mobile numeric keyboard
     - Placeholder: "● ● ● ● ● ●"
-    - Number-only input (inputMode="numeric")
+    - Number-only input validation
     - Auto-focus when shown
     - Max length 6
+    
+**OTP Input Styling**:
+```tsx
+<input
+  type="text"
+  inputMode="numeric"
+  maxLength={6}
+  className="font-mono text-2xl text-center tracking-widest"
+  placeholder="● ● ● ● ● ●"
+  autoFocus
+/>
+```
   - **Countdown Timer**:
     - 60-second countdown
     - "Resend OTP in Xs" display
@@ -530,4 +562,10 @@ src/
 - OTP is 6 digits by default (can be configured)
 - Phone validation accepts international format (but UI shows 10-digit placeholder)
 - Dark mode fully supported throughout
+
+---
+
+**Last Updated**: October 12, 2025  
+**Version**: 1.0.0  
+**Status**: ✅ Production Ready
 

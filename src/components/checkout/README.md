@@ -103,9 +103,36 @@ This directory contains all the components for the Cart Page implementation, fol
     - Toggles coupon list visibility
     - Notifies parent component via `onToggleCouponList` callback
   - **Validation**: Real-time via hook
-  - **State Synchronization**: Uses `useEffect` to sync internal `showAllCoupons` state with parent component
+  - **State Synchronization**: 
+    - Uses `useEffect` to sync internal `showAllCoupons` state with parent component
+    - Parent manages `showCouponList` state
+    - CouponInput notifies parent via `onToggleCouponList(boolean)` callback
+    - Enables bidirectional state control between parent and child
 
 **Uses Hook**: `useCouponInput(...)` for UI state management
+
+**Coupon List Visibility Flow**:
+```typescript
+// In CartPage
+const [showCouponList, setShowCouponList] = useState(false);
+const handleToggleCouponList = useCallback((show: boolean) => {
+  setShowCouponList(show);
+}, []);
+
+// CouponInput notifies parent when "View All Coupons" is clicked
+<CouponInput
+  onToggleCouponList={handleToggleCouponList}
+  // ... other props
+/>
+
+// Auto-hide when coupon is successfully applied
+const handleSelectCoupon = async (coupon: UserCoupon) => {
+  const success = await handleApplyCouponDirect(coupon);
+  if (success) {
+    setShowCouponList(false); // ← Auto-hide on success
+  }
+};
+```
 
 ### 4. **CouponList.tsx** (Under 150 lines ✅)
 - **Purpose**: Display available coupons with search and filters
@@ -309,6 +336,14 @@ const [showCouponList, setShowCouponList] = useState(false);
 const handleToggleCouponList = useCallback((show: boolean) => {
   setShowCouponList(show);
 }, []);
+
+// Handle successful coupon application (auto-hide list)
+const handleSelectCoupon = async (coupon: UserCoupon) => {
+  const success = await handleApplyCouponDirect(coupon);
+  if (success) {
+    setShowCouponList(false); // Auto-hide on success
+  }
+};
 
 // 3. Pass to components
 <CartItem
@@ -605,4 +640,10 @@ All components handle errors gracefully:
 10. Multi-currency support
 11. Cart analytics tracking
 12. A/B testing for coupon placement
+
+---
+
+**Last Updated**: October 12, 2025  
+**Version**: 1.0.0  
+**Status**: ✅ Production Ready
 

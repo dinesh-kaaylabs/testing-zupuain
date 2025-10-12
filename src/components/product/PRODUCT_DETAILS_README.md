@@ -136,7 +136,27 @@ This document covers all components for the Product Details Page implementation,
   - **Separators**: Chevron right icons
   - **Links**: Navigate to respective pages
   - **Active Item**: Product name (no link, bold)
-  - **Category Matching**: Matches category_uid with state.product.categories
+  - **Category Matching Logic**:
+    ```typescript
+    // Get categories from Redux
+    const categories = useAppSelector(state => state.product.categories);
+    
+    // Find matching category
+    const category = categories.find(cat => cat.category_uid === product.category_uid);
+    
+    // Find matching subcategory (if exists)
+    const subCategory = category?.sub_categories?.find(
+      sub => sub.sub_category_uid === product.sub_category_uid
+    );
+    
+    // Build breadcrumb items
+    const breadcrumbs = [
+      { name: 'Home', path: '/' },
+      category && { name: category.category_name, path: `/products?category=${category.category_uid}` },
+      subCategory && { name: subCategory.sub_category_name, path: `/products?category=${category.category_uid}&subcategory=${subCategory.sub_category_uid}` },
+      { name: product.product_name, path: null } // Current page
+    ].filter(Boolean);
+    ```
   - **SubCategory**: Only shown if product has sub_category_uid
   - **Responsive**: Wraps on small screens
   - **Hover Effects**: Blue color on hover
@@ -144,17 +164,29 @@ This document covers all components for the Product Details Page implementation,
 ### 8. **StickyProductBar.tsx** (Under 150 lines ✅)
 - **Purpose**: Sticky bar that appears on scroll
 - **Features**:
-  - **Trigger**: Appears after scrolling 400px
-  - **Slide Animation**: Slides down from top
+  - **Trigger**: Appears after scrolling **400px** from page top
+  - **Scroll Detection**:
+    ```typescript
+    const [showStickyBar, setShowStickyBar] = useState(false);
+    
+    useEffect(() => {
+      const handleScroll = () => {
+        setShowStickyBar(window.scrollY > 400); // 400px threshold
+      };
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+    ```
+  - **Slide Animation**: Slides down from top with transform transition
   - **Content**:
     - Small product image (48x48)
-    - Product name (truncated)
-    - Price with MRP
+    - Product name (truncated with ellipsis)
+    - Price with MRP strikethrough
     - Wishlist button (hidden on mobile)
     - Add to cart button
-  - **Fixed Position**: Top of screen with z-index 40
-  - **Shadow**: Box shadow for depth
-  - **Responsive**: Compact on mobile
+  - **Fixed Position**: `fixed top-0 left-0 right-0` with z-index 40
+  - **Shadow**: Box shadow for depth separation
+  - **Responsive**: Compact layout on mobile (<768px)
 
 ### 9. **ProductDetailsPage.tsx** (Main Page)
 - **Purpose**: Main page integrating all components
@@ -408,4 +440,10 @@ return 'In Stock';
 10. Wishlist sharing
 11. Product bundles
 12. Gift wrapping option
+
+---
+
+**Last Updated**: October 12, 2025  
+**Version**: 1.0.0  
+**Status**: ✅ Production Ready
 
