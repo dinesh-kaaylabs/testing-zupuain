@@ -4,7 +4,7 @@ This directory contains all the components for the multi-step Checkout Page impl
 
 ## Components Overview
 
-### 1. **CheckoutPage.tsx** (Main Page - ~150 lines ✅)
+### 1. **CheckoutPage.tsx** (Main Page - 150 lines ✅)
 - **Purpose**: Main checkout page orchestrating all steps
 - **Features**:
   - Uses `useCheckout()` MEGA-HOOK for all functionality
@@ -13,7 +13,7 @@ This directory contains all the components for the multi-step Checkout Page impl
   - Responsive design (single column on mobile)
   - SEO with dynamic title based on current step
   - Conditional rendering based on step
-  - Navigation buttons (Back/Next)
+  - Navigation buttons (Back/Next) - **Note:** "Place Order" is handled within ReviewStep component
   - Confirmation step takes full width
   - Loading skeleton during initial data fetch
 
@@ -23,7 +23,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
 // All state and handlers come from this single hook
 ```
 
-### 2. **CheckoutProgress.tsx** (Under 150 lines ✅)
+### 2. **CheckoutProgress.tsx** (187 lines)
 - **Purpose**: Visual progress bar with step indicators
 - **Features**:
   - **Desktop Progress Bar**:
@@ -51,7 +51,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
     - Blue for active
     - Gray for pending
 
-### 3. **AddressStep.tsx** (Under 150 lines ✅)
+### 3. **AddressStep.tsx** (188 lines)
 - **Purpose**: Address selection grid with inline add/edit
 - **Features**:
   - **Header**: Title + "Add New Address" button
@@ -70,7 +70,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
   - **Inline Forms**: Add/Edit address without leaving step
   - **Selection Warning**: Yellow banner if no address selected
 
-### 4. **AddressForm.tsx** (Under 150 lines ✅)
+### 4. **AddressForm.tsx** (292 lines)
 - **Purpose**: Form for creating/editing addresses
 - **Features**:
   - **Address Type Selector**: Home/Work/Other buttons
@@ -93,7 +93,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
   - **Redux Integration**: createAddress/updateAddress actions
   - **Success Callback**: Refreshes addresses after save
 
-### 5. **DeliveryStep.tsx** (Under 150 lines ✅)
+### 5. **DeliveryStep.tsx** (256 lines)
 - **Purpose**: Calendar picker + time slot grid (conditional)
 - **Features**:
   - **Date Selection**:
@@ -117,7 +117,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
   - **Empty States**: No dates or no slots
   - **Loading States**: Skeleton grid
 
-### 6. **PaymentStep.tsx** (Under 150 lines ✅)
+### 6. **PaymentStep.tsx** (264 lines)
 - **Purpose**: Payment method selection with security badges
 - **Features**:
   - **Payment Method Cards**:
@@ -141,8 +141,9 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
   - **Selected Summary**: Blue confirmation box
   - **Empty State**: No payment methods message
 
-### 7. **ReviewStep.tsx** (Under 150 lines ✅)
+### 7. **ReviewStep.tsx** (346 lines)
 - **Purpose**: Order summary with T&C checkbox (required)
+- **Important**: This component contains the "Place Order" button that triggers `handlePlaceOrder()`
 - **Features**:
   - **Review Cards** (all with Edit buttons):
     - **Delivery Address**: Complete address details
@@ -171,7 +172,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
     - Loading spinner during submission
     - Full width
 
-### 8. **ConfirmationStep.tsx** (Under 150 lines ✅)
+### 8. **ConfirmationStep.tsx** (249 lines)
 - **Purpose**: Order success screen with tracking
 - **Features**:
   - **Success Banner**:
@@ -197,7 +198,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
     - Continue Shopping
   - **Support Link**: Contact support
 
-### 9. **SummarySidebar.tsx** (Under 150 lines ✅)
+### 9. **SummarySidebar.tsx** (251 lines)
 - **Purpose**: Cart summary sidebar (sticky on desktop, collapsible on mobile)
 - **Features**:
   - **Mobile Collapsible Header**:
@@ -226,7 +227,7 @@ const checkout = useCheckout(); // ONE MEGA-HOOK
   - **Conditional Rendering**: Hides cart preview on confirmation step
   - **Responsive**: Hidden on confirmation step
 
-### 10. **CheckoutSkeleton.tsx** (Under 150 lines ✅)
+### 10. **CheckoutSkeleton.tsx** (114 lines ✅)
 - **Purpose**: Loading state for checkout page
 - **Features**:
   - **Progress Bar Skeleton**: 4 steps with connecting lines
@@ -430,7 +431,8 @@ const checkout = useCheckout(); // ONE HOOK, ALL DATA
 - ✔️ **ReviewStep**: `termsAccepted` checkbox REQUIRED
 - ✔️ **handlePlaceOrder()**: does everything (validation, creation, payment, cart sync, navigation)
 - ✔️ **Progress**: use `stepIndex`, `totalSteps`, `availableSteps`, `goToStep`
-- ✔️ **10 SRP components** max 150 lines each
+- ✔️ **Navigation Buttons**: CheckoutPage provides Back/Next buttons; ReviewStep has its own "Place Order" button
+- ✔️ **10 SRP components** (some exceed 150 lines due to complex logic, but maintain single responsibility)
 - ✔️ Error boundaries for each step (via RouteErrorBoundary at app level)
 
 ---
@@ -442,18 +444,18 @@ src/
 ├── pages/
 │   └── CheckoutPage.tsx               (150 lines) ✅
 ├── components/checkout/
-│   ├── CheckoutProgress.tsx           (143 lines) ✅
-│   ├── AddressStep.tsx                (144 lines) ✅
-│   ├── AddressForm.tsx                (189 lines - complex form logic)
-│   ├── DeliveryStep.tsx               (220 lines - complex capacity logic)
-│   ├── PaymentStep.tsx                (166 lines - multiple icons)
-│   ├── ReviewStep.tsx                 (244 lines - comprehensive review)
-│   ├── ConfirmationStep.tsx           (161 lines) ✅
-│   ├── SummarySidebar.tsx             (169 lines - collapsible)
-│   ├── CheckoutSkeleton.tsx           (86 lines) ✅
+│   ├── CheckoutProgress.tsx           (187 lines)
+│   ├── AddressStep.tsx                (188 lines)
+│   ├── AddressForm.tsx                (292 lines - complex form logic)
+│   ├── DeliveryStep.tsx               (256 lines - complex capacity logic)
+│   ├── PaymentStep.tsx                (264 lines - multiple payment methods)
+│   ├── ReviewStep.tsx                 (346 lines - comprehensive review with Place Order)
+│   ├── ConfirmationStep.tsx           (249 lines - success screen)
+│   ├── SummarySidebar.tsx             (251 lines - collapsible sidebar)
+│   ├── CheckoutSkeleton.tsx           (114 lines) ✅
 │   └── CHECKOUT_README.md             (This file)
 └── hooks/cart/
-    └── useCheckout.tsx                (422 lines - MEGA-HOOK)
+    └── useCheckout.tsx                (646 lines - MEGA-HOOK)
 ```
 
 ---
@@ -647,6 +649,193 @@ All components include smooth animations:
 
 ---
 
+## Razorpay Integration Details
+
+### Overview
+The checkout system integrates Razorpay for online payments. When a user selects Razorpay as their payment method, the flow handles order creation, payment collection, and verification seamlessly.
+
+### Integration Flow
+
+```typescript
+// 1. Order Creation
+const orderRequest = {
+  // ... order details
+  payment_method_id: razorpayMethod.payment_method_id,
+  slug: 'razorpay',
+  final_price: pricing.total,
+  // ... other fields
+};
+
+const result = await dispatch(createOrder(orderRequest)).unwrap();
+// Returns: { order_uid, data: { id: razorpay_order_id }, urlLink, success }
+
+// 2. If Razorpay selected, trigger payment modal
+if (selectedPaymentMethod?.slug === 'razorpay') {
+  handleRazorpayPayment(result, 'razorpay');
+}
+```
+
+### Razorpay Configuration
+
+**Required Settings** (from tenant settings):
+- `razorpay_public_token` - Razorpay Key ID (public key)
+- Retrieved from: `defaultTenant?.setting?.razorpay_public_token`
+
+**Payment Options Object**:
+```typescript
+{
+  key: razorpayPublicToken,           // Razorpay Key ID
+  amount: pricing.total * 100,        // Amount in paise (₹100 = 10000 paise)
+  currency: 'INR',                    // From DEFAULTS.CURRENCY_NAME
+  order_id: orderData.data.id,        // Razorpay order ID from backend
+  description: 'Payment for product',
+  handler: (response) => { },         // Success callback
+  modal: {
+    ondismiss: () => { }              // Cancel callback
+  }
+}
+```
+
+### Payment Handler Flow
+
+**1. Success Handler**:
+```typescript
+handler: async (response: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}) => {
+  // Verify payment with backend
+  const verificationResult = await dispatch(verifyRazorpayPayment({
+    razorpay_order_id: response.razorpay_order_id,
+    razorpay_payment_id: response.razorpay_payment_id,
+    razorpay_signature: response.razorpay_signature,
+    slug: 'razorpay',
+  })).unwrap();
+
+  if (verificationResult.success) {
+    // Clear cart, navigate to confirmation
+    await handleOrderConfirmation(orderData);
+  } else {
+    // Show error, stay on review step
+    showError('Payment verification failed');
+  }
+}
+```
+
+**2. Failure Handler**:
+```typescript
+razorpayInstance.on('payment.failed', () => {
+  showError('Payment failed');
+  setOrderLoading(false);
+  // User stays on review step to retry
+});
+```
+
+**3. Dismiss Handler**:
+```typescript
+modal: {
+  ondismiss: () => {
+    showError('Payment cancelled');
+    setOrderLoading(false);
+    // User stays on review step
+  }
+}
+```
+
+### Error Handling
+
+**Razorpay Script Not Loaded**:
+```typescript
+if (typeof window.Razorpay === 'undefined') {
+  showError('Payment gateway not loaded. Please refresh and try again.');
+  setOrderLoading(false);
+  return;
+}
+```
+
+**Common Error Scenarios**:
+1. **Script Not Loaded**: Check if Razorpay script is included in `index.html`
+2. **Invalid Key**: Verify `razorpay_public_token` in tenant settings
+3. **Order Creation Failed**: Backend validation errors (amount, order details)
+4. **Payment Failed**: Insufficient funds, card declined, network issues
+5. **Verification Failed**: Signature mismatch (security issue)
+
+### Loading States
+
+During Razorpay flow:
+- **Before Modal Opens**: `orderLoading = true` (shows spinner on Place Order button)
+- **During Payment**: Razorpay modal handles its own loading states
+- **After Success**: `orderLoading = true` until cart refresh completes
+- **After Failure/Cancel**: `orderLoading = false` (user can retry)
+
+### Script Integration
+
+**Required in `index.html`**:
+```html
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+```
+
+This script must be loaded before any checkout interactions occur.
+
+### Payment Verification Flow
+
+**Backend Verification** (handled by `verifyRazorpayPayment` action):
+1. Backend receives payment response from frontend
+2. Backend verifies signature using Razorpay secret key
+3. Backend updates order payment status
+4. Backend returns success/failure to frontend
+
+**Security**:
+- Signature verification ensures payment authenticity
+- Razorpay secret key never exposed to frontend
+- All verification done server-side
+
+### Testing
+
+**Test Mode** (using Razorpay test keys):
+- Use test card: `4111 1111 1111 1111`
+- CVV: Any 3 digits
+- Expiry: Any future date
+- OTP: Will be displayed in test mode
+
+**Production Mode**:
+- Use real Razorpay keys from dashboard
+- Ensure webhook setup for payment status updates
+- Enable required payment methods (cards, UPI, netbanking)
+
+### Constants Used
+
+From `utils/constants.tsx`:
+- `DEFAULTS.CURRENCY_NAME` - Currency code ('INR')
+- `DEFAULTS.RAZOR_PAYMENT_FAILED_MESSAGE` - Error message for failed payments
+
+### Callback Execution Order
+
+1. **Order Creation** → Backend creates Razorpay order
+2. **Modal Display** → Razorpay modal shown to user
+3. **Payment** → User completes payment
+4. **Success Handler** → Frontend receives payment details
+5. **Verification** → Backend verifies payment signature
+6. **Confirmation** → Cart cleared, navigation to confirmation step
+7. **Cart Refresh** → Fresh cart data loaded (should be empty)
+
+### COD vs Razorpay Flow
+
+**Cash on Delivery (COD)**:
+- No payment modal
+- Order created immediately
+- Direct navigation to confirmation
+- Payment status: "COD" or "Pending"
+
+**Razorpay (Online)**:
+- Payment modal displayed
+- Payment collected before confirmation
+- Verification step required
+- Payment status: "Paid" or "Failed"
+
+---
+
 ## Notes
 
 - The `useCheckout` hook already exists and is comprehensive
@@ -671,6 +860,7 @@ All components include smooth animations:
 ---
 
 **Last Updated**: October 12, 2025  
-**Version**: 1.0.0  
-**Status**: ✅ Production Ready
+**Version**: 1.1.0  
+**Status**: ✅ Production Ready  
+**Updates**: Added Razorpay integration details, updated line counts, clarified navigation button behavior
 
