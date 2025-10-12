@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { orderApi } from '../../services/orderApi';
-import { PaymentMethod, OrderListItem, OrderProduct, OrderTimelineItem, OrderUserDetails, OrderSummary, CreateOrderBodyRequest } from '../../types/api';
+import { PaymentMethod, OrderListItem, OrderProduct, OrderTimelineItem, OrderUserDetails, OrderSummary, CreateOrderResponse } from '../../types/api';
 
 interface LoadingState {
   loading: boolean;
@@ -11,6 +11,7 @@ interface OrderState {
   paymentMethods: PaymentMethod[];
   selectedPaymentMethod: PaymentMethod | null;
   orders: OrderListItem[];
+  createOrderResponse: CreateOrderResponse | null;
   totalOrderCount: number;
   orderDetails: OrderProduct[];
   timeline: OrderTimelineItem[];
@@ -25,6 +26,7 @@ const initialState: OrderState = {
   paymentMethods: [],
   selectedPaymentMethod: null,
   orders: [],
+  createOrderResponse: null,
   totalOrderCount: 0,
   orderDetails: [],
   timeline: [],
@@ -39,13 +41,26 @@ const initialState: OrderState = {
 const createOrderThunk = (name: string, apiCall: (...args: any[]) => Promise<any>) =>
   createAsyncThunk(name, async (params: any, { rejectWithValue }) => {
     try {
-      const response = await apiCall(params);
+      const response = await apiCall(params)
+      console.log(response, "response");
       if (!response.success) return rejectWithValue(response.message || 'Operation failed');
-      return response.data || [];
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
   });
+
+  const createOrderResponseThunk = (name: string, apiCall: (...args: any[]) => Promise<any>) =>
+    createAsyncThunk(name, async (params: any, { rejectWithValue }) => {
+      try {
+        const response = await apiCall(params)
+        console.log(response, "response");
+        if (!response.success) return rejectWithValue(response.message || 'Operation failed');
+        return response;
+      } catch (error: any) {
+        return rejectWithValue(error.message || 'Network error occurred');
+      }
+    });
 
 export const fetchPaymentMethods = createOrderThunk(
   'order/fetchPaymentMethods',
@@ -82,7 +97,7 @@ export const fetchOrderSummary = createOrderThunk(
   orderApi.getOrderSummary
 );
 
-export const createOrder = createOrderThunk(
+export const createOrder = createOrderResponseThunk(
   'order/createOrder',
   orderApi.createCartOrder
 );
@@ -182,7 +197,10 @@ const orderSlice = createSlice({
       
       // Create Order
       .addCase(createOrder.pending, (state) => handleLoading(state, 'main', true))
-      .addCase(createOrder.fulfilled, (state) => handleLoading(state, 'main', false))
+      .addCase(createOrder.fulfilled, (state, action: PayloadAction<CreateOrderResponse | null>) => {
+        state.createOrderResponse = action.payload;
+        handleLoading(state, 'main', false);
+      })
       .addCase(createOrder.rejected, (state, action) => 
         handleLoading(state, 'main', false, action.payload as string));
   },

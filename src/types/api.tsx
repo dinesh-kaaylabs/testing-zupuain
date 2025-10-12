@@ -576,7 +576,7 @@ export interface OrderUserDetails extends BaseEntity {
   address?: string; // address
   user_uid: string;
   country_code: string;
-  customer_location?: string;
+  customer_location?: string; // address
   complete_address: string; // address
   state: string;
   country: string;
