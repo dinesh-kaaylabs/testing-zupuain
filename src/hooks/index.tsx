@@ -50,6 +50,7 @@ export { useCoupon } from './cart/useCoupon';
 export { usePricing } from './cart/usePricing';
 export { useCheckout } from './cart/useCheckout';
 export { useCartItem } from './cart/useCartItem';
+export { useCartItemData } from './cart/useCartItemData';
 export { useCouponInput } from './cart/useCouponInput';
 export { usePricingSummary } from './cart/usePricingSummary';
 

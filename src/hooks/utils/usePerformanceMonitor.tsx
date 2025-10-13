@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 declare global {
   interface Window {
@@ -25,13 +25,16 @@ export const usePerformanceMonitor = (componentName: string): UsePerformanceMoni
     }
   }, [componentName]);
 
-  const markRenderStart = () => { renderStartTime.current = Date.now(); };
-  const markRenderEnd = () => {
+  const markRenderStart = useCallback(() => { 
+    renderStartTime.current = Date.now(); 
+  }, []);
+  
+  const markRenderEnd = useCallback(() => {
     const renderTime = Date.now() - renderStartTime.current;
     if (process.env.NODE_ENV === 'development') {
       console.log(`Render Time [${componentName}]: ${renderTime}ms`);
     }
-  };
+  }, [componentName]);
 
   return { markRenderStart, markRenderEnd };
 };

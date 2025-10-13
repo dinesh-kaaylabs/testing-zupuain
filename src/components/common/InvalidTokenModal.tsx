@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch } from '../../hooks/redux/useAppDispatch';
+import { logout } from '../../store/slices/authSlice';
 
 interface InvalidTokenModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ const InvalidTokenModal: React.FC<InvalidTokenModalProps> = ({
   message = "Your session has expired. Please login again to continue."
 }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     // Prevent body scroll when modal is open
@@ -28,6 +31,7 @@ const InvalidTokenModal: React.FC<InvalidTokenModalProps> = ({
   }, [isOpen]);
 
   const handleRedirectToLogin = () => {
+    dispatch(logout());
     onClose();
     navigate('/login', { replace: true });
   };
