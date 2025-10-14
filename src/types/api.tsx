@@ -482,7 +482,7 @@ export interface DeliveryCharge {
 export interface Order extends BaseEntity {
   order_hdr_id: number;
   order_id: string;
-  order_serial_number: string; // order_number
+  order_serial_number: string; // For display purposes
   order_uid: string;
   order_number: string;
   order_price: number;
@@ -576,8 +576,8 @@ export interface OrderUserDetails extends BaseEntity {
   address?: string; // address
   user_uid: string;
   country_code: string;
-  customer_location?: string; // address
-  complete_address: string; // address
+  customer_location?: string; // address for display purposes
+  complete_address: string; // address for display purposes
   state: string;
   country: string;
   city: string;

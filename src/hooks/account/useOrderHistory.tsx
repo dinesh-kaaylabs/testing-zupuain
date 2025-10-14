@@ -72,7 +72,7 @@ interface UseOrderHistoryReturn {
   toggleFilters: () => void;
   handleSortChange: (field: 'date' | 'amount' | 'status') => void;
   toggleSortOrder: () => void;
-  handleViewDetails: (order: OrderListItem) => void;
+  handleViewDetails: (orderId: string) => void;
   handleReorder: (order: OrderListItem) => void;
   hasOrders: boolean;
   orderStatistics: OrderStatistics;
@@ -209,7 +209,7 @@ export const useOrderHistory = (): UseOrderHistoryReturn => {
       const newOrder = filters.sortBy.split('_')[1] === 'asc' ? 'desc' : 'asc';
       setFilters(prev => ({ ...prev, sortBy: `${field}_${newOrder}` as OrderFilters['sortBy'] }));
     },
-    handleViewDetails: (order: OrderListItem) => window.location.href = `/orders/${order.order_uid}`,
+    handleViewDetails: (orderId: string) => window.location.href = `/order/${orderId}`,
     handleReorder: (order: OrderListItem) => console.log('Reordering:', order.order_uid),
     hasOrders: orderState.orders.length > 0,
     orderStatistics,

@@ -16,6 +16,9 @@ export { useFeaturedProducts } from './product/useFeaturedProducts';
 export { useFeaturedCategories } from './product/useFeaturedCategories';
 export { useBestSellers } from './product/useBestSellers';
 
+// Home hooks
+export { useNewsletterSignup } from './home/useNewsletterSignup';
+
 // Product hooks
 export { useProductList } from './product/useProductList';
 export { useProductUtils, useProductDisplayData, useCategoryDisplayData } from './product/useProductUtils';

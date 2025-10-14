@@ -22,9 +22,9 @@ interface UseOrderSummaryConditionsReturn {
   isHighValue: boolean;
 }
 
-export const useOrderSummary = (summary: OrderSummary | null): UseOrderSummaryReturn | null => 
+export const useOrderSummary = (summary: OrderSummary): UseOrderSummaryReturn => 
   useMemo(() => {
-    if (!summary) return null;
+    if (!summary) return { lineItems: [], totalFormatted: '', hasDiscount: false, savingsAmount: 0, savingsFormatted: '' };
     const { order_price: op, order_discount_amount: oda, delivery_charge: dc, cod_charge: cc, order_gst_amount: oga, total_price: tp } = summary;
     const isFree = dc === 0;
     return {

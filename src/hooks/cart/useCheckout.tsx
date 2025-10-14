@@ -3,19 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux';
 import { useToast } from '../ui/useToast';
 import { fetchUserAddresses } from '../../store/slices/addressSlice';
-import { fetchPaymentMethods, createOrder, setSelectedPaymentMethod, verifyRazorpayPayment } from '../../store/slices/orderSlice';
+import { fetchPaymentMethods, setSelectedPaymentMethod } from '../../store/slices/orderSlice';
 import { fetchDeliverySlots, setSelectedDate, setSelectedSlot } from '../../store/slices/deliverySlotSlice';
 import { fetchBag } from '../../store/slices/cartSlice';
-import { Address, PaymentMethod, DeliverySlot, CreateOrderBodyRequest, CreateOrderUserBagItem, CreateOrderResponse } from '../../types/api';
+import { Address, PaymentMethod, DeliverySlot, CreateOrderResponse } from '../../types/api';
 import { useCoupon } from './useCoupon';
 import { usePricing } from './usePricing';
 import { useDerivedCartItems } from '../../utils/cartDataHelpers';
-import { decodeOrderDataFromUrl } from '../../utils/orderUtils';
 import { DecodedOrderData, BagDetail, CartItem, Coupon } from '../../types/api';
 import { CouponDiscountResult } from '../../utils/couponUtils';
-import { DEFAULTS } from '../../utils/constants';
+import { useCheckoutSteps, CheckoutStep } from './useCheckoutSteps';
+import { useCheckoutValidation } from './useCheckoutValidation';
+import { useOrderPlacement } from './useOrderPlacement';
+import { useRazorpayPayment } from './useRazorpayPayment';
 
-export type CheckoutStep = 'address' | 'delivery' | 'payment' | 'review' | 'confirmation';
+export type { CheckoutStep };
 
 interface UseCheckoutReturn {
   // Step management
@@ -144,28 +146,18 @@ export const useCheckout = (): UseCheckoutReturn => {
 
   const isDeliverySlotActive = defaultTenant?.setting?.deliveryslot_management_active ?? false;
 
-  const STEP_ORDER = useMemo((): CheckoutStep[] => {
-    const steps: CheckoutStep[] = ['address'];
-    if (isDeliverySlotActive) steps.push('delivery');
-    steps.push('payment', 'review', 'confirmation');
-    return steps;
-  }, [isDeliverySlotActive]);
-
   // Local state
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>('address');
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [selectedDeliveryDate, setSelectedDeliveryDateLocal] = useState<string | null>(null);
   const [selectedDeliverySlot, setSelectedDeliverySlotLocal] = useState<DeliverySlot | null>(null);
-  const [orderUid, setOrderUid] = useState<string | null>(null);
-  const [orderLoading, setOrderLoading] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [orderConfirmationData, setOrderConfirmationData] = useState<DecodedOrderData | null>(null);
 
   // Derived values
   const isGuest = !isAuthenticated;
   const cartItems = useDerivedCartItems(isGuest, guestItems, bags);
   const isOnlinePayment = reduxSelectedPayment?.slug === 'razorpay' || reduxSelectedPayment?.slug === 'online';
+  
+  // Coupon management
   const couponConfig = useMemo(() => ({
     isAuthenticated,
     userUid: user?.user_uid,
@@ -177,6 +169,7 @@ export const useCheckout = (): UseCheckoutReturn => {
 
   const { appliedCoupon, appliedDiscount, handleApplyCoupon, handleRemoveCoupon } = useCoupon(couponConfig);
 
+  // Pricing management
   const pricingConfig = useMemo(() => ({
     subtotal: totalAmount,
     appliedCoupon,
@@ -187,11 +180,77 @@ export const useCheckout = (): UseCheckoutReturn => {
 
   const { pricing, pricingSummary, formatCurrency } = usePricing(pricingConfig);
 
-  // Step management calculations
-  const stepIndex = STEP_ORDER.indexOf(currentStep);
-  const isFirstStep = stepIndex === 0;
-  const isLastStep = currentStep === 'confirmation';
-  const totalSteps = STEP_ORDER.length - 1;
+  // Step management
+  const {
+    currentStep,
+    stepIndex,
+    isFirstStep,
+    isLastStep,
+    totalSteps,
+    availableSteps,
+    goToNextStep: goToNextStepRaw,
+    goToPreviousStep,
+    goToStep,
+    setCurrentStep,
+    resetStep,
+  } = useCheckoutSteps({ isDeliverySlotActive });
+
+  // Validation
+  const { validateStep, validateAndShowError } = useCheckoutValidation({
+    selectedAddress,
+    selectedDeliveryDate,
+    selectedDeliverySlot,
+    selectedPaymentMethod: reduxSelectedPayment,
+    cartItemsCount: cartItems.length,
+    termsAccepted,
+    isDeliverySlotActive,
+  });
+
+  // Order placement
+  const {
+    orderUid,
+    orderLoading,
+    orderError,
+    orderConfirmationData,
+    retryCount,
+    placeOrder,
+    retryPlaceOrder,
+    handleOrderConfirmation,
+    resetOrderState,
+    setOrderLoadingState,
+    refreshCart,
+  } = useOrderPlacement({
+    cartItems,
+    selectedAddress,
+    selectedDeliveryDate,
+    selectedDeliverySlot,
+    selectedPaymentMethod: reduxSelectedPayment,
+    appliedCoupon,
+    appliedDiscount,
+    pricing,
+    storeUid: defaultStore?.store_uid || '',
+    isDeliverySlotActive,
+  });
+
+  // Handle successful order confirmation
+  const handleSuccessfulOrder = useCallback(async (orderData: CreateOrderResponse) => {
+    await handleOrderConfirmation(orderData);
+    setCurrentStep('confirmation');
+    setOrderLoadingState(false);
+  }, [handleOrderConfirmation, setCurrentStep, setOrderLoadingState]);
+
+  // Handle failed order/payment
+  const handleFailedOrder = useCallback(() => {
+    setOrderLoadingState(false);
+  }, [setOrderLoadingState]);
+
+  // Razorpay payment integration
+  const { initiateRazorpayPayment } = useRazorpayPayment({
+    razorpayPublicKey: defaultTenant?.setting?.razorpay_public_token || '',
+    totalAmount: pricing.total,
+    onPaymentSuccess: handleSuccessfulOrder,
+    onPaymentFailure: handleFailedOrder,
+  });
 
   // Authentication check
   useEffect(() => {
@@ -205,12 +264,16 @@ export const useCheckout = (): UseCheckoutReturn => {
     if (!isAuthenticated || !defaultStore?.store_uid) return;
 
     const fetchData = async () => {
-      await Promise.all([
-        dispatch(fetchUserAddresses()),
-        dispatch(fetchPaymentMethods('B2C')),
-        dispatch(fetchDeliverySlots({})),
-        dispatch(fetchBag(defaultStore.store_uid)),
-      ]);
+      try {
+        await Promise.all([
+          dispatch(fetchUserAddresses()),
+          dispatch(fetchPaymentMethods('B2C')),
+          dispatch(fetchDeliverySlots({})),
+          dispatch(fetchBag(defaultStore.store_uid)),
+        ]);
+      } catch (error) {
+        console.error('❌ Error fetching initial checkout data:', error);
+      }
     };
 
     fetchData();
@@ -227,85 +290,32 @@ export const useCheckout = (): UseCheckoutReturn => {
     }
   }, [cartLoading, cartItems.length, currentStep, navigate, showError]);
 
-  // Auto-select default address - only run when addresses change and no address selected
+  // Auto-select default address - Fixed dependency issue
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddress) {
       const defaultAddress = addresses.find((addr: Address) => addr.is_default) || addresses[0];
       setSelectedAddress(defaultAddress);
     }
-  }, [addresses]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addresses, selectedAddress]);
 
-  // Auto-select default payment method - only run when payment methods change
+  // Auto-select default payment method
   useEffect(() => {
     if (paymentMethods.length > 0 && !reduxSelectedPayment) {
       dispatch(setSelectedPaymentMethod(paymentMethods[0]));
     }
   }, [paymentMethods, reduxSelectedPayment, dispatch]);
 
-  // Validation logic - memoized callback
-  const validateStep = useCallback((step: CheckoutStep, showErrorMsg = false): boolean => {
-    let isValid = true;
-    let msg = '';
-
-    switch (step) {
-      case 'address':
-        isValid = !!selectedAddress;
-        msg = 'Please select a delivery address';
-        break;
-      case 'delivery':
-        isValid = !isDeliverySlotActive || !!(selectedDeliveryDate && selectedDeliverySlot);
-        msg = 'Please select a delivery date and time slot';
-        break;
-      case 'payment':
-        isValid = !!reduxSelectedPayment;
-        msg = 'Please select a payment method';
-        break;
-      case 'review':
-        if (cartItems.length === 0) {
-          isValid = false;
-          msg = 'Your cart is empty';
-        } else if (!termsAccepted) {
-          isValid = false;
-          msg = 'Please accept the terms and conditions';
-        } else {
-          const baseValid = !!selectedAddress && !!reduxSelectedPayment;
-          isValid = isDeliverySlotActive 
-            ? baseValid && !!selectedDeliveryDate && !!selectedDeliverySlot
-            : baseValid;
-          msg = 'Please complete all required steps';
-        }
-        break;
-      default:
-        isValid = true;
-    }
-
-    if (!isValid && showErrorMsg && msg) showError(msg);
-    return isValid;
-  }, [selectedAddress, selectedDeliveryDate, selectedDeliverySlot, reduxSelectedPayment, 
-      cartItems.length, isDeliverySlotActive, showError, termsAccepted]);
-
-  const validateCurrentStep = useCallback(() => validateStep(currentStep, true), [currentStep, validateStep]);
-  const canProceedToNextStep = validateStep(currentStep, false);
-
-  // Step navigation callbacks
+  // Validated step navigation
   const goToNextStep = useCallback(() => {
-    if (!validateCurrentStep()) return;
+    if (!validateAndShowError(currentStep)) return;
+    goToNextStepRaw();
+  }, [currentStep, validateAndShowError, goToNextStepRaw]);
 
-    const nextIndex = stepIndex + 1;
-    if (nextIndex < STEP_ORDER.length - 1) {
-      setCurrentStep(STEP_ORDER[nextIndex]);
-    }
-  }, [stepIndex, validateCurrentStep, STEP_ORDER]);
+  const validateCurrentStep = useCallback(() => {
+    return validateAndShowError(currentStep);
+  }, [currentStep, validateAndShowError]);
 
-  const goToPreviousStep = useCallback(() => {
-    if (isFirstStep) return;
-    const prevIndex = stepIndex - 1;
-    setCurrentStep(STEP_ORDER[prevIndex]);
-  }, [stepIndex, isFirstStep, STEP_ORDER]);
-
-  const goToStep = useCallback((step: CheckoutStep) => {
-    setCurrentStep(step);
-  }, []);
+  const canProceedToNextStep = validateStep(currentStep, false);
 
   // Data refresh callbacks
   const refreshAddresses = useCallback(() => { 
@@ -340,228 +350,44 @@ export const useCheckout = (): UseCheckoutReturn => {
     dispatch(fetchPaymentMethods('B2C'));
   }, [dispatch]);
 
-  const refreshCart = useCallback(() => {
-    if (!defaultStore?.store_uid) return;
-    // Delay cart refresh slightly to allow backend processing
-    setTimeout(() => {
-      dispatch(fetchBag(defaultStore.store_uid));
-    }, 3000);
-  }, [defaultStore?.store_uid, dispatch]);
-  
-  // Handle order confirmation and redirect
-  const handleOrderConfirmation = useCallback(async (result: CreateOrderResponse) => {
-    try {
-      // Decode order data from URL
-      if (result.urlLink) {
-        const decodedData = decodeOrderDataFromUrl(result.urlLink);
-        if (decodedData) {
-          setOrderConfirmationData(decodedData);
-          console.log('📦 Order confirmation data decoded:', decodedData);
-        }
-      }
-
-      success('Order placed successfully!');
-      setCurrentStep('confirmation');
-    } catch (error) {
-      console.error('Error in order confirmation:', error);
-      showError('Order placed but failed to refresh cart');
-      setCurrentStep('confirmation');
-    }
-  }, [success, showError]);
-
-  // Handle Razorpay payment
-  const handleRazorpayPayment = useCallback((orderData: CreateOrderResponse, paymentSlug: string) => {
-    // Check if Razorpay is loaded
-    if (typeof window.Razorpay === 'undefined') {
-      showError('Payment gateway not loaded. Please refresh and try again.');
-      setOrderLoading(false);
-      return;
-    }
-
-    const rzpKey = defaultTenant?.setting?.razorpay_public_token || '';
-    const payOrderId = orderData.data.id || '';
-
-    const options = {
-      key: rzpKey,
-      amount: pricing.total * 100,
-      currency: DEFAULTS.CURRENCY_NAME,
-      order_id: payOrderId,
-      description: 'Payment for product',
-      handler: async (response: {
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-      }) => {
-        try {
-          console.log('🚀 Razorpay payment response:', response);
-          
-          const verificationResult = await dispatch(verifyRazorpayPayment({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-            slug: paymentSlug,
-          })).unwrap();
-
-          console.log('🚀 Razorpay verification result:', verificationResult);
-
-          if (verificationResult.success) {
-            handleOrderConfirmation(orderData);
-            refreshCart();
-          } else {
-            showError(verificationResult.data?.message || 'Payment verification failed');
-            setOrderLoading(false);
-          }
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Payment verification failed';
-          showError(errorMsg);
-          setOrderLoading(false);
-        }
-      },
-      modal: {
-        ondismiss: () => {
-          showError('Payment cancelled');
-          setOrderLoading(false);
-        },
-      },
-    };
-
-    const razorpayInstance = new window.Razorpay(options);
-    
-    razorpayInstance.on('payment.failed', () => {
-      showError(DEFAULTS.RAZOR_PAYMENT_FAILED_MESSAGE || 'Payment failed');
-      setOrderLoading(false);
-    });
-
-    razorpayInstance.open();
-  }, [defaultTenant?.setting?.razorpay_public_token, pricing.total, dispatch, showError, handleOrderConfirmation, refreshCart]);
-  // Build user bag items for order
-  const buildUserBagItems = useCallback((items: (BagDetail | CartItem)[]): CreateOrderUserBagItem[] => {
-    return items.map(item => {
-      const isBag = 'bag_detail_id' in item;
-      const product = isBag ? item.zm_products?.[0] : null;
-      
-      return {
-        product_uid: item.product_uid,
-        stock: isBag ? product?.stock?.toString() || null : item.stock?.toString() || null,
-        product_count: item.product_count,
-        price: isBag ? item.selling_price.toString() : item.price,
-        track_inventory: isBag ? product?.track_inventory || false : item.track_inventory,
-        product_status: isBag ? product?.product_status || true : item.product_status,
-        category_uid: isBag ? product?.category_uid || '' : item.category_uid,
-        min_order_quantity: isBag ? product?.min_order_quantity || null : item.min_order_quantity || null,
-      };
-    });
-  }, []);
-
-  // Handle place order
+  // Main order placement handler with Razorpay integration
   const handlePlaceOrder = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
-    // Validate required fields
-    const requiredFields = isDeliverySlotActive
-      ? [selectedAddress, selectedDeliveryDate, selectedDeliverySlot, reduxSelectedPayment, defaultStore?.store_uid]
-      : [selectedAddress, reduxSelectedPayment, defaultStore?.store_uid];
+    const result = await placeOrder();
 
-    if (requiredFields.some(field => !field)) {
-      showError('Missing required information for order placement');
-      return;
-    }
-
-    setOrderLoading(true);
-    setOrderError(null);
-
-    try {
-      const userBag = buildUserBagItems(cartItems);
-
-      const orderRequest: CreateOrderBodyRequest = {
-        // Pricing details
-        cod_charge: reduxSelectedPayment?.slug === 'cod' ? pricing.codCharge || 0 : 0,
-        coupon_amount: appliedDiscount?.discountAmount || 0,
-        delivery_charge: pricing.deliveryCharge,
-        discount_amount: !!appliedDiscount,
-        discount_percent: appliedCoupon?.coupon_percentage || 0,
-        final_price: pricing.total,
-        price: pricing.subtotal,
-        
-        // Order metadata
-        slugData: 'CART',
-        userBag,
-        buyer_gst_number: null,
-        checkout_flag: 1,
-        customer_type_id: 1,
-        
-        // Delivery details
-        dayName: isDeliverySlotActive && selectedDeliverySlot ? (selectedDeliverySlot.dayName || '') : '',
-        delivery_address_id: selectedAddress!.b2c_address_id,
-        delivery_date: isDeliverySlotActive && selectedDeliveryDate ? selectedDeliveryDate : '',
-        delivery_time: isDeliverySlotActive && selectedDeliverySlot ? (selectedDeliverySlot.delivery_time || '') : '',
-        order_notes: null,
-        
-        // Payment details
-        payment_method_id: reduxSelectedPayment!.payment_method_id,
-        secured: true,
-        slug: reduxSelectedPayment!.slug,
-        store_uid: defaultStore!.store_uid,
-      };
-
-      const result = await dispatch(createOrder(orderRequest)).unwrap();
-      console.log('🚀 Order creation result:', result);
-
-      if (!result?.order_uid) {
-        throw new Error('Order creation failed - no order UID returned');
-      }
-
-      setOrderUid(result.order_uid);
-
-      // Handle payment based on method
+    if (result.success && result.orderData) {
+      // Check if payment method is Razorpay
       if (reduxSelectedPayment?.slug === 'razorpay') {
-        handleRazorpayPayment(result, reduxSelectedPayment.slug);
+        console.log('💳 Initiating Razorpay payment...');
+        initiateRazorpayPayment(result.orderData, reduxSelectedPayment.slug);
       } else {
-        handleOrderConfirmation(result);
-        refreshCart();
-        setOrderLoading(false);
+        // For COD or other payment methods, directly confirm order
+        console.log('✅ Direct order confirmation (non-Razorpay)');
+        await handleSuccessfulOrder(result.orderData);
+        await refreshCart();
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to place order. Please try again.';
-      
-      console.error('Order placement error:', error);
-      setOrderError(errorMessage);
-      showError(errorMessage);
-      setOrderLoading(false);
     }
   }, [
     validateCurrentStep,
-    selectedAddress,
-    selectedDeliveryDate,
-    selectedDeliverySlot,
+    placeOrder,
     reduxSelectedPayment,
-    defaultStore,
-    cartItems,
-    appliedDiscount,
-    appliedCoupon,
-    pricing,
-    dispatch,
-    showError,
-    isDeliverySlotActive,
-    buildUserBagItems,
-    handleRazorpayPayment,
-    handleOrderConfirmation,
+    initiateRazorpayPayment,
+    handleSuccessfulOrder,
+    refreshCart,
   ]);
+
   // Reset checkout state
   const resetCheckout = useCallback(() => {
-    setCurrentStep('address');
+    resetStep();
     setSelectedAddress(null);
     setSelectedDeliveryDateLocal(null);
     setSelectedDeliverySlotLocal(null);
-    setOrderUid(null);
-    setOrderError(null);
     setTermsAccepted(false);
-    setOrderConfirmationData(null);
+    resetOrderState();
     dispatch(setSelectedDate(null));
     dispatch(setSelectedSlot(null));
-  }, [dispatch]);
+  }, [dispatch, resetStep, resetOrderState]);
 
   // Return all checkout functionality
   return {
@@ -575,7 +401,7 @@ export const useCheckout = (): UseCheckoutReturn => {
     isLastStep,
     stepIndex,
     totalSteps,
-    availableSteps: STEP_ORDER,
+    availableSteps,
     isDeliverySlotActive,
 
     // Address management

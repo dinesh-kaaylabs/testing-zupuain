@@ -1,0 +1,2 @@
+export { useNewsletterSignup } from './useNewsletterSignup';
+

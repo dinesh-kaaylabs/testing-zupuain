@@ -51,6 +51,14 @@ export const useProductList = () => {
 
   const totalPages = useMemo(() => Math.ceil(totalProducts / DEFAULT_LIMIT), [totalProducts]);
 
+  // Filter sidebar data - compute subcategories
+  const selectedCategoryData = useMemo(
+    () => categories.find(c => c.category_uid === selectedCategory),
+    [categories, selectedCategory]
+  );
+  const subCategories = selectedCategoryData?.sub_category || [];
+  const hasSubCategories = subCategories.length > 0;
+
   // Memoize rating calculation to avoid recalculating on every render
   const calculateAverageRating = useCallback((product: Product): number => {
     if (!product.product_ratings?.length) return 0;
@@ -221,6 +229,9 @@ export const useProductList = () => {
     viewMode,
     priceRange,
     selectedRating,
+    // Filter sidebar data
+    subCategories,
+    hasSubCategories,
     // Handlers
     handleSearchChange,
     handleSortChange,

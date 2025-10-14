@@ -14,7 +14,7 @@ export const DEFAULTS = {
   CURRENCY_LOCALE: 'en-IN',
   CURRENCY_NAME: 'INR',
   LOW_STOCK_THRESHOLD: 10,
-  PLACEHOLDER_IMAGE: '/placeholder-image.jpg',
+  PLACEHOLDER_IMAGE: 'https://images-zupain.s3.ap-south-1.amazonaws.com/Image.svg',
   MAX_PRODUCT_NAME_LENGTH: 50,
   CHECKOUT_MILESTONE_CODE: 'CHK',
   RAZOR_PAYMENT_FAILED_MESSAGE: 'Payment failed. Try different Payment method. If money deducted it will be auto refunded.',

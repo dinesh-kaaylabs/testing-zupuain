@@ -32,7 +32,7 @@ export interface CategoryDisplayData {
   product_count: number;
 }
 
-const PLACEHOLDER_IMAGE = '/placeholder-image.jpg';
+const PLACEHOLDER_IMAGE = DEFAULTS.PLACEHOLDER_IMAGE;
 
 export const getProductImages = (product: Product): ProductImage[] => product.product_image || [];
 
@@ -73,7 +73,7 @@ export const getDisplayPrice = (product: Product): number => parseFloat(product.
 export const getMRP = (product: Product): number | null => product.mrp ? parseFloat(product.mrp) : null;
 
 export const isOutOfStock = (product: Product): boolean => 
-  product.track_inventory && (!product.stock || parseInt(product.stock) <= 0);
+  product.track_inventory && (!product.stock || parseInt(product.stock) < 0);
 
 export const isLowStock = (product: Product, lowStockThreshold?: number): boolean => {
   if (!product.track_inventory || !product.stock) return false;
@@ -131,7 +131,7 @@ export const getProductDisplayName = (product: Product, maxLength: number = DEFA
 
 export const getProductBrand = (product: Product): string | null => product?.product_brand || null;
 export const isProductAvailable = (product: Product): boolean => product.product_status && !isOutOfStock(product);
-export const canAddToCart = (product: Product): boolean => isProductAvailable(product) && product.min_order_quantity !== null;
+export const canAddToCart = (product: Product): boolean => isProductAvailable(product);
 export const getMinOrderQuantity = (product: Product): number => product.min_order_quantity || 1;
 
 export const createCartItem = (product: Product, displayData: ProductDisplayData, productCount: number = 1) => ({
@@ -144,7 +144,7 @@ export const createCartItem = (product: Product, displayData: ProductDisplayData
   track_inventory: product.track_inventory,
   product_status: product.product_status,
   category_uid: product.category_uid,
-  min_order_quantity: product.min_order_quantity,
+  min_order_quantity: product.min_order_quantity || 1,
   stock: product.stock || 0
 });
 
@@ -188,7 +188,7 @@ export const formatCategoryForDisplay = (category: Category): CategoryDisplayDat
   return {
     category_uid: category.category_uid,
     category_name: category.category_name,
-    category_image: category.image,
+    category_image: category?.image || PLACEHOLDER_IMAGE,
     product_count: category.product_category_count,
   };
 };

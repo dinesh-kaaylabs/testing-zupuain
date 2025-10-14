@@ -8,7 +8,7 @@ interface UseDeliverySlotsReturn {
   hasSlotsForDate: boolean;
 }
 
-export const useDeliverySlots = (deliverySlots: DeliverySlot[], selectedDate: string | null): UseDeliverySlotsReturn => {
+export const useDeliverySlots = (deliverySlots: DeliverySlot[], selectedDate: string): UseDeliverySlotsReturn => {
   const availableDates = useMemo(() => 
     [...new Set(deliverySlots.map(s => s.delivery_date))].filter(Boolean).sort() as string[]
   , [deliverySlots]);

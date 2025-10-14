@@ -23,9 +23,10 @@ interface UseOrderItemsReturn {
   hasMultipleItems: boolean;
 }
 
-export const useOrderItems = (products: OrderProduct[] | null): UseOrderItemsReturn | null => 
+export const useOrderItems = (products: OrderProduct[]): UseOrderItemsReturn => 
   useMemo(() => {
-    if (!products?.length) return null;
+    if (!products?.length) return { items: [], totalItems: 0, hasMultipleItems: false };
+    
     const items = products.map(p => ({
       id: p.order_details_id,
       product_uid: p.product_uid,
@@ -38,7 +39,8 @@ export const useOrderItems = (products: OrderProduct[] | null): UseOrderItemsRet
       totalPriceFormatted: formatCurrency(p.selling_price * p.product_count),
       hasDiscount: p.product_discount_amount > 0,
       discountAmount: p.product_discount_amount,
-      originalPrice: p.mrp_price,
+      originalPrice: p.mrp_price || 0,
     }));
+
     return { items, totalItems: items.length, hasMultipleItems: items.length > 1 };
   }, [products]);

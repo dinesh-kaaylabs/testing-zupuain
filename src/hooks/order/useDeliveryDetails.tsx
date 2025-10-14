@@ -4,7 +4,7 @@ import { OrderUserDetails } from '../../types/api';
 interface DeliverySection {
   id: string;
   label: string;
-  value: string | string[];
+  value: string;
   icon: string;
   bgColor: string;
   iconColor: string;
@@ -16,9 +16,9 @@ interface UseDeliveryDetailsReturn {
   sections: DeliverySection[];
 }
 
-export const useDeliveryDetails = (userDetails: OrderUserDetails | null): UseDeliveryDetailsReturn | null => 
+export const useDeliveryDetails = (userDetails: OrderUserDetails): UseDeliveryDetailsReturn => 
   useMemo(() => {
-    if (!userDetails) return null;
+    if (!userDetails) return { sections: [] };
     const { user_name, complete_address, address, customer_location, city, state, pincode, country, phone_number, payment_method } = userDetails;
     const fullAddress = `${complete_address || address || customer_location}, ${city}, ${state} ${pincode}, ${country}`;
     return {

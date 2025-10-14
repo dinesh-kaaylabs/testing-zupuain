@@ -20,9 +20,9 @@ interface OrderHeaderBreadcrumb {
   label: string;
 }
 
-export const useOrderHeader = (orderId: string, orderSerialNumber?: string, creationDate?: string): OrderHeaderData | null => 
+export const useOrderHeader = (orderId: string, orderSerialNumber?: string, creationDate?: string): OrderHeaderData=> 
   useMemo(() => {
-    if (!orderId) return null;
+    if (!orderId) return { displayOrderNumber: '', formattedDate: null, hasDate: false, isNew: false };
     const isNew = creationDate ? Math.ceil((Date.now() - new Date(creationDate).getTime()) / 86400000) <= 2 : false;
     return {
       displayOrderNumber: orderSerialNumber || orderId,
@@ -40,7 +40,7 @@ export const useOrderHeaderActions = (isRefreshing: boolean, canCancel: boolean)
     refreshButtonState: isRefreshing ? 'loading' as const : 'idle' as const,
   }), [isRefreshing, canCancel]);
 
-export const useOrderHeaderBreadcrumb = (returnPath?: string): OrderHeaderBreadcrumb => 
+export const useOrderHeaderBreadcrumb = (returnPath: string): OrderHeaderBreadcrumb => 
   useMemo(() => ({
     path: returnPath || '/account',
     label: 'Back to Orders',

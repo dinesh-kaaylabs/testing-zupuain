@@ -47,9 +47,9 @@ interface OrderStatistics {
  * Format order for display in lists (dashboard, order history)
  * Returns consistent display format with all necessary fields
  */
-export const useOrderDisplay = (order: Order | OrderListItem | null): OrderDisplayData | null => 
+export const useOrderDisplay = (order: Order | OrderListItem): OrderDisplayData => 
   useMemo(() => {
-    if (!order) return null;
+    if (!order) return { orderNumber: '', orderId: '', formattedDate: '', formattedDateTime: '', formattedPrice: '', totalPrice: 0, itemCount: 0, itemCountText: '', status: '', statusDescription: '', deliveryDate: null, deliveryTime: null, deliverySlot: null };
     
     return {
       orderNumber: order.order_serial_number || order.order_number,
@@ -89,9 +89,9 @@ export const useOrderDisplay = (order: Order | OrderListItem | null): OrderDispl
 /**
  * Format multiple orders for display
  */
-export const useOrdersDisplay = (orders: (Order | OrderListItem)[] | null): OrdersDisplayData[] | null => 
+export const useOrdersDisplay = (orders: (Order | OrderListItem)[]): OrdersDisplayData[] => 
   useMemo(() => {
-    if (!orders || orders.length === 0) return null;
+    if (!orders || orders.length === 0) return [];
     
     return orders.map(order => ({
       orderNumber: order.order_serial_number || order.order_number,
@@ -132,9 +132,9 @@ export const getOrderStatusColor = (status: string): string => {
 /**
  * Format order statistics for dashboard
  */
-export const useOrderStatistics = (orders: (Order | OrderListItem)[] | null): OrderStatistics | null => 
+export const useOrderStatistics = (orders: (Order | OrderListItem)[]): OrderStatistics => 
   useMemo(() => {
-    if (!orders || orders.length === 0) return null;
+    if (!orders || orders.length === 0) return { totalOrders: 0, totalSpent: 0, formattedTotalSpent: '', avgOrderValue: 0, formattedAvgOrderValue: '', statusCounts: {}, pendingCount: 0, deliveredCount: 0, cancelledCount: 0 };
     
     const totalOrders = orders.length;
     const totalSpent = orders.reduce((sum, order) => sum + order.total_price, 0);

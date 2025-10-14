@@ -6,8 +6,8 @@ import { OrderProduct, OrderTimelineItem, OrderUserDetails, OrderSummary } from 
 interface UseOrderDetailsReturn {
   orderDetails: OrderProduct[];
   timeline: OrderTimelineItem[];
-  userDetails: OrderUserDetails | null;
-  orderSummary: OrderSummary | null;
+  userDetails: OrderUserDetails;
+  orderSummary: OrderSummary;
   loading: boolean;
   error: string | null;
   isRefreshing: boolean;
@@ -46,8 +46,8 @@ export const useOrderDetails = (orderUid: string | undefined): UseOrderDetailsRe
   return {
     orderDetails: orderDetails as OrderProduct[],
     timeline: timeline as OrderTimelineItem[],
-    userDetails: userDetails as OrderUserDetails | null,
-    orderSummary: orderSummary as OrderSummary | null,
+    userDetails: userDetails as OrderUserDetails,
+    orderSummary: orderSummary as OrderSummary,
     loading: main.loading,
     error: main.error,
     isRefreshing,

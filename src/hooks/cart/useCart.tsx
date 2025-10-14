@@ -123,6 +123,11 @@ interface UseCartReturn {
   clearFilters: () => void;
   setSortBy: (sortBy: CouponSortBy) => void;
   
+  // UI State
+  showCouponList: boolean;
+  handleToggleCouponList: (show: boolean) => void;
+  handleSelectCoupon: (coupon: UserCoupon) => Promise<void>;
+  
   // Utilities
   filterOptions: CouponFilterOptions;
   sortBy: CouponSortBy;
@@ -152,6 +157,7 @@ export const useCart = (): UseCartReturn => {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showCouponList, setShowCouponList] = useState(false);
 
   const isGuest = !isAuthenticated;
   const cartItems = useDerivedCartItems(isGuest, guestItems, bags);
@@ -289,6 +295,19 @@ export const useCart = (): UseCartReturn => {
     navigate('/checkout', { state: { appliedCoupon, pricing } });
   }, [cartItems.length, isGuest, navigate, appliedCoupon, pricing, showError]);
 
+  // Handle coupon list toggle
+  const handleToggleCouponList = useCallback((show: boolean) => {
+    setShowCouponList(show);
+  }, []);
+
+  // Handle coupon selection with wrapper
+  const handleSelectCoupon = useCallback(async (coupon: UserCoupon): Promise<void> => {
+    const success = await handleApplyCouponDirect(coupon);
+    if (success) {
+      setShowCouponList(false);
+    }
+  }, [handleApplyCouponDirect]);
+
   return {
     cartItems, isGuest, loading, error, totalItems, isUpdating, hasInitialized,
     pricing, pricingSummary, totalSavings, potentialSavings, discountBreakdown,
@@ -298,6 +317,7 @@ export const useCart = (): UseCartReturn => {
     handleIncrement, handleDecrement, handleRemove, handleMoveToWishlist, handleCheckout,
     handleApplyCoupon, handleApplyCouponDirect, handleRemoveCoupon, applyBestCoupon,
     previewDiscount, refreshCoupons, updateFilters, clearFilters, setSortBy,
+    showCouponList, handleToggleCouponList, handleSelectCoupon,
     filterOptions, sortBy, formatCurrency, refreshDeliveryCharge,
   };
 };
