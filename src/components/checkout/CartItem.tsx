@@ -4,7 +4,7 @@ import { BagDetail, CartItem as CartItemType } from '../../types/api';
 import { useCartItem } from '../../hooks/cart/useCartItem';
 
 interface CartItemProps {
-  item: BagDetail | CartItemType;
+  item: CartItemType;
   isGuest: boolean;
   isUpdating: boolean;
   onIncrement: (uid: string, id?: number) => Promise<void>;

@@ -15,199 +15,114 @@ const initialState: WishlistState = {
   error: null,
 };
 
-// Consolidated localStorage operations
-const localStorageOps = {
-  get: (): Product[] => {
-    try {
-      const wishlist = localStorage.getItem('guestWishlist');
-      return wishlist ? JSON.parse(wishlist) : [];
-    } catch {
-      return [];
-    }
-  },
-  set: (wishlist: Product[]): void => {
-    try {
-      localStorage.setItem('guestWishlist', JSON.stringify(wishlist));
-    } catch (error) {
-      console.error('Failed to save wishlist to localStorage:', error);
-    }
-  },
-  add: (product: Product): void => {
-    try {
-      const wishlist = localStorageOps.get();
-      if (!wishlist.find(item => item.product_uid === product.product_uid)) {
-        localStorageOps.set([...wishlist, product]);
-      }
-    } catch (error) {
-      console.error('Failed to add product to localStorage wishlist:', error);
-    }
-  },
-  remove: (productUid: string): void => {
-    try {
-      const wishlist = localStorageOps.get();
-      localStorageOps.set(wishlist.filter(item => item.product_uid !== productUid));
-    } catch (error) {
-      console.error('Failed to remove product from localStorage wishlist:', error);
-    }
-  }
+const LS_KEY = 'guestWishlist';
+const getLS = (): Product[] => {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
 };
-
-// Generic wishlist thunk helper
-const createWishlistThunk = (name: string, apiCall: () => Promise<any>) =>
-  createAsyncThunk(name, async (_, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const isAuthenticated = state.auth.isAuthenticated;
-
-    if (!isAuthenticated) {
-      return localStorageOps.get();
-    }
-
-    try {
-      const response = await apiCall();
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Operation failed');
-      }
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Network error occurred');
-    }
-  });
-
-export const getUserWishlist = createWishlistThunk(
-  'wishlist/getUserWishlist',
-  wishlistApi.getUserWishlist
-);
-
-export const addToWishlist = createAsyncThunk(
-  'wishlist/addToWishlist',
-  async (product: Product, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const isAuthenticated = state.auth.isAuthenticated;
-
-    if (!isAuthenticated) {
-      localStorageOps.add(product);
-      return product;
-    }
-
-    try {
-      const response = await wishlistApi.addToWishlist(product.product_uid);
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to add to wishlist');
-      }
-      return response.data || product;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Network error occurred');
-    }
-  }
-);
-
-export const removeFromWishlist = createAsyncThunk(
-  'wishlist/removeFromWishlist',
-  async (productUid: string, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const isAuthenticated = state.auth.isAuthenticated;
-
-    if (!isAuthenticated) {
-      localStorageOps.remove(productUid);
-      return productUid;
-    }
-
-    try {
-      const response = await wishlistApi.removeFromWishlist(productUid);
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to remove from wishlist');
-      }
-      return productUid;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Network error occurred');
-    }
-  }
-);
-
-export const moveToCart = createAsyncThunk(
-  'wishlist/moveToCart',
-  async (productUid: string, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const isAuthenticated = state.auth.isAuthenticated;
-
-    if (!isAuthenticated) {
-      localStorageOps.remove(productUid);
-      return productUid;
-    }
-
-    try {
-      const response = await wishlistApi.moveToCart(productUid);
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to move to cart');
-      }
-      return productUid;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Network error occurred');
-    }
-  }
-);
-
-// Helper function for loading states
-const handleLoading = (state: any, loading: boolean, error: string | null = null) => {
-  state.loading = loading;
-  if (error !== null) state.error = error;
+const setLS = (items: Product[]) => {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch {}
 };
+const addLS = (p: Product) => {
+  const items = getLS();
+  if (!items.find(i => i.product_uid === p.product_uid)) setLS([...items, p]);
+};
+const removeLS = (uid: string) => setLS(getLS().filter(i => i.product_uid !== uid));
+
+const getStoreUid = (state: RootState) => 
+  state.store?.defaultStore?.store_uid || 
+  JSON.parse(localStorage.getItem('defaultStore') || '{}')?.store_uid || '';
+
+export const getUserWishlist = createAsyncThunk('wishlist/get', async (_, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  if (!state.auth.isAuthenticated) return getLS();
+  try {
+    const res = await wishlistApi.getUserWishlist();
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return res.data?.flatMap(i => i.zm_products || []) || [];
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+export const addToWishlist = createAsyncThunk('wishlist/add', async (product: Product, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  if (!state.auth.isAuthenticated) { addLS(product); return product; }
+  try {
+    const res = await wishlistApi.addToWishlist({ product_uid: product.product_uid, store_uid: getStoreUid(state) });
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return product;
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+export const removeFromWishlist = createAsyncThunk('wishlist/remove', async (uid: string, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  if (!state.auth.isAuthenticated) { removeLS(uid); return uid; }
+  try {
+    const res = await wishlistApi.removeFromWishlist(uid, getStoreUid(state));
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return uid;
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+export const moveToCart = createAsyncThunk('wishlist/move', async (uid: string, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  if (!state.auth.isAuthenticated) { removeLS(uid); return uid; }
+  try {
+    const res = await wishlistApi.moveToCart(uid, getStoreUid(state));
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return uid;
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+export const moveAllToCart = createAsyncThunk('wishlist/moveAll', async (_, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  const items = state.wishlist.wishlistItems;
+  if (!items.length) return rejectWithValue('Empty');
+  if (!state.auth.isAuthenticated) { setLS([]); return { movedCount: items.length, failedItems: [] }; }
+  try {
+    const res = await wishlistApi.moveAllToCart(getStoreUid(state));
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return { movedCount: res.data?.movedCount || items.length, failedItems: res.data?.failedItems || [] };
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+export const clearAllWishlist = createAsyncThunk('wishlist/clear', async (_, { getState, rejectWithValue }) => {
+  const state = getState() as RootState;
+  const items = state.wishlist.wishlistItems;
+  if (!items.length) return rejectWithValue('Empty');
+  if (!state.auth.isAuthenticated) { setLS([]); return { success: true }; }
+  try {
+    const res = await wishlistApi.clearAllWishlist(getStoreUid(state));
+    if (!res.success) return rejectWithValue(res.message || 'Failed');
+    return { success: true };
+  } catch (e: any) { return rejectWithValue(e.message || 'Error'); }
+});
+
+const setLoad = (s: WishlistState, l: boolean, e: string | null = null) => { s.loading = l; if (e) s.error = e; };
 
 const wishlistSlice = createSlice({
   name: 'wishlist',
   initialState,
   reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
-    initializeWishlist: (state) => {
-      state.wishlistItems = localStorageOps.get();
-    },
-    clearWishlist: (state) => {
-      state.wishlistItems = [];
-      state.error = null;
-    },
+    clearError: s => { s.error = null; },
+    initializeWishlist: s => { s.wishlistItems = getLS(); },
+    clearWishlist: s => { s.wishlistItems = []; s.error = null; },
   },
-  extraReducers: (builder) => {
-    builder
-      // Get user wishlist
-      .addCase(getUserWishlist.pending, (state) => handleLoading(state, true))
-      .addCase(getUserWishlist.fulfilled, (state, action: PayloadAction<Product[]>) => {
-        handleLoading(state, false);
-        state.wishlistItems = Array.isArray(action.payload) ? action.payload : [];
-      })
-      .addCase(getUserWishlist.rejected, (state, action) => {
-        handleLoading(state, false, action.payload as string);
-        state.wishlistItems = [];
-      })
-      
-      // Add to wishlist
-      .addCase(addToWishlist.pending, (state) => handleLoading(state, true))
-      .addCase(addToWishlist.fulfilled, (state, action) => {
-        handleLoading(state, false);
-        if (!Array.isArray(state.wishlistItems)) state.wishlistItems = [];
-        if (!state.wishlistItems.find(item => item?.product_uid === action.payload.product_uid)) {
-          state.wishlistItems.push(action.payload);
-        }
-      })
-      .addCase(addToWishlist.rejected, (state, action) => 
-        handleLoading(state, false, action.payload as string))
-      
-      // Remove from wishlist
-      .addCase(removeFromWishlist.pending, (state) => handleLoading(state, true))
-      .addCase(removeFromWishlist.fulfilled, (state, action: PayloadAction<string>) => {
-        handleLoading(state, false);
-        if (!Array.isArray(state.wishlistItems)) state.wishlistItems = [];
-        state.wishlistItems = state.wishlistItems.filter(item => item?.product_uid !== action.payload);
-      })
-      .addCase(removeFromWishlist.rejected, (state, action) => 
-        handleLoading(state, false, action.payload as string))
-      
-      // Move to cart
-      .addCase(moveToCart.fulfilled, (state, action: PayloadAction<string>) => {
-        if (!Array.isArray(state.wishlistItems)) state.wishlistItems = [];
-        state.wishlistItems = state.wishlistItems.filter(item => item?.product_uid !== action.payload);
-      });
+  extraReducers: b => {
+    b.addCase(getUserWishlist.pending, s => setLoad(s, true))
+      .addCase(getUserWishlist.fulfilled, (s, a) => { setLoad(s, false); s.wishlistItems = a.payload || []; })
+      .addCase(getUserWishlist.rejected, (s, a) => { setLoad(s, false, a.payload as string); s.wishlistItems = []; })
+      .addCase(addToWishlist.pending, s => setLoad(s, true))
+      .addCase(addToWishlist.fulfilled, (s, a) => { setLoad(s, false); if (!s.wishlistItems.find(i => i?.product_uid === a.payload.product_uid)) s.wishlistItems.push(a.payload); })
+      .addCase(addToWishlist.rejected, (s, a) => setLoad(s, false, a.payload as string))
+      .addCase(removeFromWishlist.pending, s => setLoad(s, true))
+      .addCase(removeFromWishlist.fulfilled, (s, a) => { setLoad(s, false); s.wishlistItems = s.wishlistItems.filter(i => i?.product_uid !== a.payload); })
+      .addCase(removeFromWishlist.rejected, (s, a) => setLoad(s, false, a.payload as string))
+      .addCase(moveToCart.fulfilled, (s, a) => { s.wishlistItems = s.wishlistItems.filter(i => i?.product_uid !== a.payload); })
+      .addCase(moveAllToCart.pending, s => setLoad(s, true))
+      .addCase(moveAllToCart.fulfilled, (s, a) => { setLoad(s, false); const f = a.payload.failedItems || []; s.wishlistItems = f.length ? s.wishlistItems.filter(i => f.includes(i?.product_uid)) : []; })
+      .addCase(moveAllToCart.rejected, (s, a) => setLoad(s, false, a.payload as string))
+      .addCase(clearAllWishlist.pending, s => setLoad(s, true))
+      .addCase(clearAllWishlist.fulfilled, s => { setLoad(s, false); s.wishlistItems = []; })
+      .addCase(clearAllWishlist.rejected, (s, a) => setLoad(s, false, a.payload as string));
   },
 });
 

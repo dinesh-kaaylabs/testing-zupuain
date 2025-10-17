@@ -1,33 +1,18 @@
-import { apiClient } from './apiClient';
-import { Product, ApiResponse } from '../types/api';
-import { withErrorHandling } from '../utils/apiResponseHandler';
+import { apiClient as api } from './apiClient';
+import { ApiResponse as Res, Wishlist as W, WishlistResponse as WRes } from '../types/api';
+import { withErrorHandling as err } from '../utils/apiResponseHandler';
 
+export interface AddToWishlistRequest extends Record<string, unknown> {
+  product_uid: string;
+  store_uid: string;
+}
+
+const w = '/wishlist';
 export const wishlistApi = {
-  async getUserWishlist(): Promise<ApiResponse<Product[]>> {
-    return withErrorHandling(
-      () => apiClient.get<Product[]>('/wishlist'),
-      'Failed to fetch wishlist'
-    );
-  },
-
-  async addToWishlist(productUid: string): Promise<ApiResponse<Product>> {
-    return withErrorHandling(
-      () => apiClient.post<Product>('/wishlist/add', { product_uid: productUid }),
-      'Failed to add to wishlist'
-    );
-  },
-
-  async removeFromWishlist(productUid: string): Promise<ApiResponse<void>> {
-    return withErrorHandling(
-      () => apiClient.delete<void>(`/wishlist/remove?product_uid=${productUid}`),
-      'Failed to remove from wishlist'
-    );
-  },
-
-  async moveToCart(productUid: string): Promise<ApiResponse<void>> {
-    return withErrorHandling(
-      () => apiClient.post<void>('/wishlist/move-to-cart', { product_uid: productUid }),
-      'Failed to move to cart'
-    );
-  },
+  getUserWishlist: (): Promise<WRes> => api.get<WRes>(w).catch(() => { throw new Error('Failed'); }),
+  addToWishlist: (d: AddToWishlistRequest): Promise<Res<W>> => err(() => api.post<W>(w, d), 'Failed'),
+  removeFromWishlist: (p: string, s: string): Promise<Res<void>> => err(() => api.delete<void>(`${w}?product_uid=${p}&store_uid=${s}`), 'Failed'),
+  moveToCart: (p: string, s: string): Promise<Res<void>> => err(() => api.post<void>(`${w}/move-to-cart`, { product_uid: p, store_uid: s }), 'Failed'),
+  moveAllToCart: (s: string): Promise<Res<{ movedCount: number; failedItems: string[] }>> => err(() => api.post(`${w}/move-all-to-cart`, { store_uid: s }), 'Failed'),
+  clearAllWishlist: (s: string): Promise<Res<void>> => err(() => api.delete<void>(`/clear/all?store_uid=${s}`), 'Failed')
 };

@@ -1,61 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useAppSelector } from '../../hooks/redux/useAppSelector';
-import { useAppDispatch } from '../../hooks/redux/useAppDispatch';
-import { subscribeNewsletter, clearNewsletterState } from '../../store/slices/newsletterSlice';
-import { validateEmail } from '../../utils/formValidation';
+import React from 'react';
+import { useNewsletterSignup } from '../../hooks/home/useNewsletterSignup';
 
 const NewsletterSignup: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState<string | undefined>(undefined);
-  const [touched, setTouched] = useState(false);
-  
-  const dispatch = useAppDispatch();
-  const { loading, success, error } = useAppSelector((state) => state.newsletter);
-
-  useEffect(() => {
-    if (success) {
-      setEmail('');
-      setTouched(false);
-      setEmailError(undefined);
-      
-      // Clear success state after 5 seconds
-      const timer = setTimeout(() => {
-        dispatch(clearNewsletterState());
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [success, dispatch]);
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    
-    if (touched) {
-      const error = validateEmail(value);
-      setEmailError(error);
-    }
-  };
-
-  const handleBlur = () => {
-    setTouched(true);
-    const error = validateEmail(email);
-    setEmailError(error);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setTouched(true);
-    const error = validateEmail(email);
-    setEmailError(error);
-
-    if (error) {
-      return;
-    }
-
-    dispatch(subscribeNewsletter({ email }));
-  };
+  const {
+    email,
+    emailError,
+    touched,
+    loading,
+    success,
+    error,
+    handleEmailChange,
+    handleBlur,
+    handleSubmit,
+  } = useNewsletterSignup();
 
   return (
     <section className="py-16 bg-gradient-to-br from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 animate-fade-in relative overflow-hidden">

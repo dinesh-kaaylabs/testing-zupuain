@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product } from '../../types/api';
-import { ProductDisplayData } from '../../utils/productUtils';
+import { formatProductForDisplay, ProductDisplayData } from '../../utils/productUtils';
 import ProductCard from './ProductCard';
 
 interface ProductGridProps {
@@ -55,7 +55,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       }
     >
       {products.map((product) => {
-        const displayData = productsDisplayData.get(product.product_uid);
+        const displayData = formatProductForDisplay(product);
         if (!displayData) return null;
 
         return (

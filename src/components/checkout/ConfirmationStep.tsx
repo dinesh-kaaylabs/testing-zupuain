@@ -24,7 +24,7 @@ export const ConfirmationStep = ({
 
   const handleTrackOrder = () => {
     if (orderUid) {
-      navigate(`/orders/${orderUid}`);
+      navigate(`/order/${orderUid}`);
     }
   };
 

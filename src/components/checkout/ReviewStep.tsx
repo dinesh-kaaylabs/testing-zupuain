@@ -1,6 +1,7 @@
 import { FileText, Edit, MapPin, Truck, CreditCard, Tag, X, ShoppingBag } from 'lucide-react';
 import { Address, PaymentMethod, DeliverySlot, BagDetail, CartItem } from '../../types/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { useCartItemData } from '../../hooks/cart/useCartItemData';
 
 interface ReviewStepProps {
   // Address
@@ -52,6 +53,32 @@ interface ReviewStepProps {
   handlePlaceOrder: () => Promise<void>;
   orderLoading: boolean;
 }
+
+// Helper component to use the hook for each item
+const ReviewCartItem = ({ item }: { item: BagDetail | CartItem }) => {
+  const { name, image, price, quantity } = useCartItemData(item);
+
+  return (
+    <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+      <img
+        src={image || '/placeholder.png'}
+        alt={name || 'Product'}
+        className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          {name}
+        </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+          Qty: {quantity}
+        </p>
+      </div>
+      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        {formatCurrency(price * quantity)}
+      </div>
+    </div>
+  );
+};
 
 export const ReviewStep = ({
   selectedAddress,
@@ -180,35 +207,9 @@ export const ReviewStep = ({
           </h3>
         </div>
         <div className="space-y-3 max-h-64 overflow-y-auto">
-          {cartItems.map((item, index) => {
-            const isBag = 'bag_detail_id' in item;
-            const product = isBag ? item.zm_products?.[0] : null;
-            const name = isBag ? product?.product_name : item.product_name;
-            const image = isBag ? product?.product_image?.[0]?.product_image : item.product_image;
-            const price = isBag ? item.selling_price : parseFloat(item.price);
-            const quantity = item.product_count;
-
-            return (
-              <div key={index} className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-                <img
-                  src={image || '/placeholder.png'}
-                  alt={name || 'Product'}
-                  className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {name}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    Qty: {quantity}
-                  </p>
-                </div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(price * quantity)}
-                </div>
-              </div>
-            );
-          })}
+          {cartItems.map((item, index) => (
+            <ReviewCartItem key={index} item={item} />
+          ))}
         </div>
       </div>
 

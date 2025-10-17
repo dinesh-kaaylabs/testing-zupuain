@@ -38,26 +38,13 @@ const CartPage: React.FC = () => {
     applyBestCoupon,
     previewDiscount,
     formatCurrency,
+    showCouponList,
+    handleToggleCouponList,
+    handleSelectCoupon,
   } = useCart();
-
-  // Show coupon list state
-  const [showCouponList, setShowCouponList] = React.useState(false);
 
   // Check if any item is being updated
   const isAnyItemUpdating = isUpdating;
-
-  // Handle coupon list toggle from CouponInput component
-  const handleToggleCouponList = React.useCallback((show: boolean) => {
-    setShowCouponList(show);
-  }, []);
-
-  // Handle coupon selection with wrapper
-  const handleSelectCoupon = async (coupon: any) => {
-    const success = await handleApplyCouponDirect(coupon);
-    if (success) {
-      setShowCouponList(false);
-    }
-  };
 
   // Loading state
   if (!hasInitialized || loading) {

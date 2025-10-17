@@ -1,9 +1,7 @@
-import { useState, useCallback, ChangeEvent } from 'react';
+import { ChangeEvent } from 'react';
 import { X, Save, MapPin } from 'lucide-react';
-import { useAppDispatch } from '../../hooks/redux';
-import { createAddress, updateAddress } from '../../store/slices/addressSlice';
-import { useToast } from '../../hooks/ui/useToast';
 import { Address } from '../../types/api';
+import { useAddressForm } from '../../hooks/cart/useAddressForm';
 
 interface AddressFormProps {
   address: Address | null;
@@ -11,100 +9,14 @@ interface AddressFormProps {
   onSuccess: () => void;
 }
 
-interface FormData {
-  address_tag: string;
-  complete_address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark: string;
-  is_default: boolean;
-}
-
-const INITIAL_FORM: FormData = {
-  address_tag: 'Home',
-  complete_address: '',
-  city: '',
-  state: '',
-  pincode: '',
-  landmark: '',
-  is_default: false,
-};
-
 export const AddressForm = ({ address, onClose, onSuccess }: AddressFormProps) => {
-  const dispatch = useAppDispatch();
-  const { success, error: showError } = useToast();
-
-  const [formData, setFormData] = useState<FormData>(() => {
-    if (!address) return INITIAL_FORM;
-    return {
-      address_tag: address.address_tag || 'Home',
-      complete_address: address.complete_address || address.address || '',
-      city: address.city || '',
-      state: address.state || '',
-      pincode: address.pincode || '',
-      landmark: address.landmark || '',
-      is_default: address.is_default || false,
-    };
-  });
-
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = useCallback((field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: undefined }));
-  }, []);
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-
-    if (!formData.complete_address.trim()) newErrors.complete_address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
-    } else if (!/^\d{6}$/.test(formData.pincode)) {
-      newErrors.pincode = 'Pincode must be 6 digits';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        address_tag: formData.address_tag,
-        address: formData.complete_address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
-        landmark: formData.landmark,
-        is_default: formData.is_default,
-        country: 'India',
-      };
-
-      if (address?.b2c_address_id) {
-        await dispatch(updateAddress({ addressId: address.b2c_address_id, addressData: payload })).unwrap();
-        success('Address updated successfully!');
-      } else {
-        await dispatch(createAddress(payload)).unwrap();
-        success('Address added successfully!');
-      }
-
-      onSuccess();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save address';
-      showError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [formData, address, dispatch, onSuccess, success, showError, isSubmitting]);
+  const {
+    formData,
+    errors,
+    isSubmitting,
+    handleChange,
+    handleSubmit,
+  } = useAddressForm(address, onSuccess);
 
   const addressTags = ['Home', 'Work', 'Other'];
 

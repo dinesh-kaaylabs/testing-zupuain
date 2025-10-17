@@ -595,6 +595,22 @@ export interface NewsletterSubscriber extends BaseEntity {
   tenant_uid: string;
 }
 
+export interface Wishlist extends BaseEntity {
+  wishlist_id: number;
+  wishlist_uid: string;
+  user_uid: string;
+  product_uid: string;
+  product_variant_id: number | null;
+  tenant_uid: string;
+  store_uid: string;
+  deletedAt: string | null;
+  zm_products: Product[];
+}
+
+export interface WishlistResponse extends ApiResponse<Wishlist[]> {
+  count: number;
+}
+
 export type UserCoupon = Coupon;
 export type OrderListItem = Order;
 export type OrderTimelineItem = OrderTimeline;

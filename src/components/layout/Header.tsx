@@ -36,10 +36,9 @@ const Header: React.FC = () => {
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <img
               src={defaultTenant?.setting?.brand_logo || "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=40&h=40&fit=crop&crop=center"}
-              alt="LuxeHome"
+              alt={defaultTenant?.setting?.business_name || "LuxeHome"}
               className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg object-cover"
             />
-            <span className="text-xl lg:text-2xl font-bold text-primary">LuxeHome</span>
           </Link>
 
           {/* Desktop Navigation */}

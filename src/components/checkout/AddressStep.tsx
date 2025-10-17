@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
 import { Home, Plus, MapPin, Edit2, Check } from 'lucide-react';
 import { Address } from '../../types/api';
 import { AddressForm } from './AddressForm';
+import { useAddressStep } from '../../hooks/cart/useAddressStep';
 
 interface AddressStepProps {
   addresses: Address[];
@@ -20,29 +20,14 @@ export const AddressStep = ({
   addressError,
   refreshAddresses,
 }: AddressStepProps) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-
-  const handleAddNew = useCallback(() => {
-    setEditingAddress(null);
-    setShowForm(true);
-  }, []);
-
-  const handleEdit = useCallback((address: Address) => {
-    setEditingAddress(address);
-    setShowForm(true);
-  }, []);
-
-  const handleFormClose = useCallback(() => {
-    setShowForm(false);
-    setEditingAddress(null);
-  }, []);
-
-  const handleFormSuccess = useCallback(() => {
-    setShowForm(false);
-    setEditingAddress(null);
-    refreshAddresses();
-  }, [refreshAddresses]);
+  const {
+    showForm,
+    editingAddress,
+    handleAddNew,
+    handleEdit,
+    handleFormClose,
+    handleFormSuccess,
+  } = useAddressStep(refreshAddresses);
 
   if (showForm) {
     return (

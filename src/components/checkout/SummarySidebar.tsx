@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShoppingBag, ChevronDown, ChevronUp, Tag } from 'lucide-react';
 import { BagDetail, CartItem } from '../../types/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { useCartItemData } from '../../hooks/cart/useCartItemData';
 
 interface SummarySidebarProps {
   cartItems: (BagDetail | CartItem)[];
@@ -20,6 +21,27 @@ interface SummarySidebarProps {
   appliedCoupon: any;
   currentStep: string;
 }
+
+// Helper component to use the hook for each item
+const CartItemPreview = ({ item }: { item: BagDetail | CartItem }) => {
+  const { name, image, quantity } = useCartItemData(item);
+
+  return (
+    <div className="flex items-center space-x-2">
+      <img
+        src={image || '/placeholder.png'}
+        alt={name || 'Product'}
+        className="w-10 h-10 object-cover rounded border border-gray-200 dark:border-gray-700"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+          {name}
+        </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">Qty: {quantity}</p>
+      </div>
+    </div>
+  );
+};
 
 export const SummarySidebar = ({
   cartItems,
@@ -81,29 +103,9 @@ export const SummarySidebar = ({
                 {totalItems} {totalItems === 1 ? 'Item' : 'Items'} in cart
               </p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {cartItems.slice(0, 3).map((item, index) => {
-                  const isBag = 'bag_detail_id' in item;
-                  const product = isBag ? item.zm_products?.[0] : null;
-                  const name = isBag ? product?.product_name : item.product_name;
-                  const image = isBag ? product?.product_image?.[0]?.product_image : item.product_image;
-                  const quantity = item.product_count;
-
-                  return (
-                    <div key={index} className="flex items-center space-x-2">
-                      <img
-                        src={image || '/placeholder.png'}
-                        alt={name || 'Product'}
-                        className="w-10 h-10 object-cover rounded border border-gray-200 dark:border-gray-700"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {name}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Qty: {quantity}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {cartItems.slice(0, 3).map((item, index) => (
+                  <CartItemPreview key={index} item={item} />
+                ))}
                 {cartItems.length > 3 && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center pt-2">
                     + {cartItems.length - 3} more items

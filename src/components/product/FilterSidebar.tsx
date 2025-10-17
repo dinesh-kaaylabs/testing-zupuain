@@ -1,5 +1,5 @@
 import React from 'react';
-import { Category } from '../../types/api';
+import { Category, SubCategory } from '../../types/api';
 import { PRODUCT_OPTIONS } from '../../utils/constants';
 
 interface FilterSidebarProps {
@@ -10,6 +10,8 @@ interface FilterSidebarProps {
   availability: string;
   sortBy: string;
   categories: Category[];
+  subCategories: SubCategory[];
+  hasSubCategories: boolean;
   
   // Handlers
   onSearchChange: (value: string) => void;
@@ -32,6 +34,8 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   availability,
   sortBy,
   categories,
+  subCategories,
+  hasSubCategories,
   onSearchChange,
   onCategoryChange,
   onSubCategoryChange,
@@ -42,8 +46,6 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   isOpen = true,
   onClose,
 }) => {
-  const selectedCategoryData = categories.find(c => c.category_uid === selectedCategory);
-  const subCategories = selectedCategoryData?.sub_category || [];
 
   const filterContent = (
     <div className="space-y-6">
@@ -178,7 +180,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       </div>
 
       {/* Sub Categories */}
-      {subCategories.length > 0 && (
+      {hasSubCategories && (
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Sub Category
@@ -197,7 +199,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                 All Sub Categories
               </span>
             </label>
-            {subCategories.map((subCategory: any) => (
+            {subCategories.map((subCategory) => (
               <label
                 key={subCategory.sub_category_uid}
                 className="flex items-center cursor-pointer group"

@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
 import { Calendar, Clock, Truck, AlertCircle, TrendingUp } from 'lucide-react';
 import { DeliverySlot } from '../../types/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { useDeliveryStep } from '../../hooks/cart/useDeliveryStep';
 
 interface DeliveryStepProps {
   deliverySlots: DeliverySlot[];
@@ -23,42 +23,11 @@ export const DeliveryStep = ({
   setSelectedDeliveryDate,
   setSelectedDeliverySlot,
 }: DeliveryStepProps) => {
-  // Get unique dates from slots
-  const availableDates = useMemo(() => {
-    const dates = [...new Set(deliverySlots.map(slot => slot.delivery_date))].filter(Boolean) as string[];
-    return dates.sort();
-  }, [deliverySlots]);
-
-  // Get slots for selected date
-  const slotsForDate = useMemo(() => {
-    if (!selectedDeliveryDate) return [];
-    return deliverySlots.filter(slot => slot.delivery_date === selectedDeliveryDate);
-  }, [deliverySlots, selectedDeliveryDate]);
-
-  // Format date for display
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  // Get slot capacity info
-  const getSlotCapacity = (slot: DeliverySlot) => {
-    if (!slot.max_orders_per_slot) return null;
-    const remaining = slot.max_orders_per_slot - (slot.order_count || 0);
-    const percentage = (remaining / slot.max_orders_per_slot) * 100;
-    
-    if (percentage <= 0) return { status: 'full', color: 'red', label: 'Full' };
-    if (percentage <= 25) return { status: 'limited', color: 'orange', label: `${remaining} left` };
-    if (percentage <= 50) return { status: 'filling', color: 'yellow', label: `${remaining} left` };
-    return { status: 'available', color: 'green', label: 'Available' };
-  };
+  // Use the custom hook for delivery slot logic
+  const { availableDates, slotsForDate, formatDate, getSlotCapacity } = useDeliveryStep(
+    deliverySlots,
+    selectedDeliveryDate
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -30,6 +30,8 @@ const ProductListPage: React.FC = () => {
     infiniteScrollLoading,
     totalProducts,
     totalPages,
+    subCategories,
+    hasSubCategories,
     handleSearchChange,
     handleCategoryChange,
     handleSubCategoryChange,
@@ -176,6 +178,8 @@ const ProductListPage: React.FC = () => {
                 availability={availability}
                 sortBy={sortBy}
                 categories={categories}
+                subCategories={subCategories}
+                hasSubCategories={hasSubCategories}
                 onSearchChange={handleSearchChange}
                 onCategoryChange={handleCategoryChange}
                 onSubCategoryChange={handleSubCategoryChange}
@@ -193,6 +197,8 @@ const ProductListPage: React.FC = () => {
               availability={availability}
               sortBy={sortBy}
               categories={categories}
+              subCategories={subCategories}
+              hasSubCategories={hasSubCategories}
               onSearchChange={handleSearchChange}
               onCategoryChange={handleCategoryChange}
               onSubCategoryChange={handleSubCategoryChange}
