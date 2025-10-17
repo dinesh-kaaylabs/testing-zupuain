@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useProductDetails } from '../hooks/product/useProductDetails';
 import { useProductUtils } from '../hooks/product/useProductUtils';
+import { useProductVariants } from '../hooks/product/useProductVariants';
 import { useCartActions } from '../hooks/cart/useCartActions';
 import { useWishlistActions } from '../hooks/wishlist/useWishlistActions';
 import { useAppSelector } from '../hooks/redux/useAppSelector';
@@ -13,6 +14,7 @@ import ProductTabs from '../components/product/ProductTabs';
 import RelatedProducts from '../components/product/RelatedProducts';
 import Breadcrumb from '../components/product/Breadcrumb';
 import StickyProductBar from '../components/product/StickyProductBar';
+import VariantSelector from '../components/product/VariantSelector';
 
 const ProductDetailsPage: React.FC = () => {
   // CRITICAL: useProductDetails takes NO parameters - uses useParams internally
@@ -23,6 +25,16 @@ const ProductDetailsPage: React.FC = () => {
   const { isInWishlist, handleToggleWishlist } = useWishlistActions();
   const { success } = useToast();
   const categories = useAppSelector((state) => state.product.categories);
+
+  // Variant handling
+  const {
+    hasVariants,
+    variantOptions,
+    selectedVariant,
+    currentVariant,
+    variantDisplayData,
+    handleVariantChange,
+  } = useProductVariants(product);
 
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -35,7 +47,9 @@ const ProductDetailsPage: React.FC = () => {
   // Handle add to cart
   const handleAddToCartWithQuantity = (quantity: number) => {
     if (product && displayData) {
-      handleAddToCart(product, displayData, quantity);
+      const variantId = currentVariant?.id || null;
+
+      handleAddToCart(product, displayData, quantity, variantId);
     }
   };
 
@@ -156,7 +170,9 @@ const ProductDetailsPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             {/* Gallery */}
             <ProductGallery
-              images={displayData.allImages}
+              images={variantDisplayData?.images && variantDisplayData.images.length > 0 
+                ? variantDisplayData.images 
+                : displayData.allImages}
               productName={product.product_name}
             />
 
@@ -167,7 +183,22 @@ const ProductDetailsPage: React.FC = () => {
                 productCode={product.product_code}
                 averageRating={averageRating}
                 totalReviews={totalReviews}
+                variantDisplayData={variantDisplayData}
               />
+
+              {/* Variant Selector */}
+              {hasVariants && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                    Select Options
+                  </h3>
+                  <VariantSelector
+                    variantOptions={variantOptions}
+                    selectedVariant={selectedVariant}
+                    onVariantChange={handleVariantChange}
+                  />
+                </div>
+              )}
 
               {/* Social Share */}
               <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -229,6 +260,7 @@ const ProductDetailsPage: React.FC = () => {
                 isInWishlist={isInWishlist(product.product_uid)}
                 onAddToCart={handleAddToCartWithQuantity}
                 onToggleWishlist={handleWishlistToggle}
+                variantDisplayData={variantDisplayData}
               />
             </div>
           </div>

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { ProductDisplayData } from '../../utils/productUtils';
+import { VariantDisplayData } from '../../hooks/product/useProductVariants';
+import { useProductInfo } from '../../hooks/product/useProductInfo';
 
 interface ProductInfoProps {
   displayData: ProductDisplayData;
   productCode?: string | null;
   averageRating: number;
   totalReviews: number;
+  variantDisplayData?: VariantDisplayData | null;
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -13,8 +16,17 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   productCode,
   averageRating,
   totalReviews,
+  variantDisplayData,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  
+  // Use hook to handle product info logic
+  const { effectiveProductCode, priceInfo, stockInfo } = useProductInfo({
+    displayData,
+    productCode,
+    variantDisplayData,
+  });
+  
   return (
     <div className="space-y-4">
       {/* Product Name */}
@@ -80,11 +92,11 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         )}
 
         {/* SKU */}
-        {productCode && (
+        {effectiveProductCode && (
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <span className="font-medium">SKU:</span>
             <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-              {productCode}
+              {effectiveProductCode}
             </span>
           </div>
         )}
@@ -95,18 +107,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         <div className="flex items-baseline gap-4 flex-wrap">
           {/* Current Price with Gradient */}
           <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-            {displayData.price}
+            {priceInfo.price}
           </div>
 
           {/* MRP */}
-          {displayData.mrp && (
+          {priceInfo.hasMrp && (
             <div className="flex items-center gap-3">
               <span className="text-xl text-gray-500 dark:text-gray-400 line-through">
-                {displayData.mrp}
+                {priceInfo.mrp}
               </span>
-              {displayData.discountPercent > 0 && (
+              {priceInfo.hasDiscount && (
                 <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-bold rounded-full animate-pulse-slow">
-                  {displayData.discountPercent}% OFF
+                  {priceInfo.discountPercent}% OFF
                 </span>
               )}
             </div>
@@ -114,34 +126,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
 
         {/* Savings */}
-        {displayData.mrp && displayData.discountedPrice > 0 && (
+        {priceInfo.hasSavings && (
           <p className="mt-2 text-sm text-green-600 dark:text-green-400 font-medium">
-            You save: {displayData.discountedPrice > 0 ? `₹${displayData.discountedPrice.toFixed(2)}` : ''}
+            You save: {priceInfo.savings}
           </p>
         )}
       </div>
 
       {/* Stock Status */}
       <div className="flex items-center gap-2">
-        <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold ${
-            displayData.stockStatus === 'Out of Stock'
-              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
-              : displayData.stockStatus === 'Low Stock'
-              ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
-              : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
-          }`}
-        >
-          <div
-            className={`w-2 h-2 rounded-full ${
-              displayData.stockStatus === 'Out of Stock'
-                ? 'bg-red-500'
-                : displayData.stockStatus === 'Low Stock'
-                ? 'bg-yellow-500 animate-pulse'
-                : 'bg-green-500'
-            }`}
-          />
-          {displayData.stockStatus}
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold ${stockInfo.colors.container}`}>
+          <div className={`w-2 h-2 rounded-full ${stockInfo.colors.dot}`} />
+          {stockInfo.statusText}
         </div>
       </div>
 

@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { useAppDispatch } from '../redux/useAppDispatch';
 import { addToCart, incrementQuantity, decrementQuantity, removeFromCart } from '../../store/slices/cartSlice';
 import { Product } from '../../types/api';
-import { ProductDisplayData, createCartItem } from '../../utils/productUtils';
+import { ProductDisplayData, createCartItem, getDefaultVariantId } from '../../utils/productUtils';
 import { useToast } from '../ui/useToast';
 
 interface UseCartActionsReturn {
-  handleAddToCart: (product: Product, displayData: ProductDisplayData, quantity?: number) => Promise<boolean>;
+  handleAddToCart: (product: Product, displayData: ProductDisplayData, quantity?: number, variantId?: string | null) => Promise<boolean>;
   handleIncrementQuantity: (uid: string, id?: number) => Promise<boolean>;
   handleDecrementQuantity: (uid: string, id?: number) => Promise<boolean>;
   handleRemoveFromCart: (uid: string, id?: number) => Promise<boolean>;
@@ -15,36 +15,38 @@ interface UseCartActionsReturn {
 export const useCartActions = (): UseCartActionsReturn => {
   const dispatch = useAppDispatch();
   const { success, error } = useToast();
-  const handleAddToCart = useCallback(async (product: Product, displayData: ProductDisplayData, quantity?: number) => {
+  
+  const handleAddToCart = useCallback(async (product: Product, displayData: ProductDisplayData, qty?: number, variantId?: string | null) => {
     try {
-      await dispatch(addToCart(createCartItem(product, displayData, quantity || displayData.minOrderQuantity))).unwrap();
+      const vId = variantId !== undefined ? variantId : getDefaultVariantId(product);
+    
+      await dispatch(addToCart(createCartItem(product, displayData, qty || displayData.minOrderQuantity, vId))).unwrap();
       success('Product added to cart!');
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add product to cart';
-      error(errorMessage);
+      error(err instanceof Error ? err.message : 'Failed to add product to cart');
       return false;
     }
   }, [dispatch, success, error]);
+
   const handleAction = useCallback(async (
     action: typeof incrementQuantity | typeof decrementQuantity | typeof removeFromCart,
-    productUid: string, bagDetailId?: number, msg?: string
+    uid: string, id?: number, msg?: string
   ) => {
     try {
-      await dispatch(action({ product_uid: productUid, bag_detail_id: bagDetailId })).unwrap();
+      await dispatch(action({ product_uid: uid, bag_detail_id: id })).unwrap();
       if (msg) success(msg);
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update cart';
-      error(errorMessage);
+      error(err instanceof Error ? err.message : 'Failed to update cart');
       return false;
     }
   }, [dispatch, success, error]);
-  const handleIncrementQuantity = useCallback((uid: string, id?: number) => 
-    handleAction(incrementQuantity, uid, id), [handleAction]);
-  const handleDecrementQuantity = useCallback((uid: string, id?: number) => 
-    handleAction(decrementQuantity, uid, id), [handleAction]);
-  const handleRemoveFromCart = useCallback((uid: string, id?: number) => 
-    handleAction(removeFromCart, uid, id, 'Product removed from cart'), [handleAction]);
-  return { handleAddToCart, handleIncrementQuantity, handleDecrementQuantity, handleRemoveFromCart };
+
+  return {
+    handleAddToCart,
+    handleIncrementQuantity: useCallback((uid: string, id?: number) => handleAction(incrementQuantity, uid, id), [handleAction]),
+    handleDecrementQuantity: useCallback((uid: string, id?: number) => handleAction(decrementQuantity, uid, id), [handleAction]),
+    handleRemoveFromCart: useCallback((uid: string, id?: number) => handleAction(removeFromCart, uid, id, 'Product removed from cart'), [handleAction]),
+  };
 };

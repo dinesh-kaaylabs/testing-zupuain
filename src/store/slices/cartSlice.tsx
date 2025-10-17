@@ -105,15 +105,12 @@ export const addToCart = createAsyncThunk(
     const state = getState() as RootState;
     const { isAuthenticated } = state.auth;
     const { defaultStore } = state.store;
-
     if (!isAuthenticated) {
       return { ...data, isGuest: true };
     }
-
     if (!defaultStore?.store_uid) {
       return rejectWithValue('Store not available');
     }
-
     try {
       const response = await cartApi.addToCart({
         product: {
@@ -200,6 +197,7 @@ export const syncGuestCart = createAsyncThunk(
           mrp: item.mrp,
           price: item.price,
           min_order_quantity: item.min_order_quantity,
+          product_variant_id: item.product_variant_id,
         })),
         store_uid: data.store_uid,
       };
@@ -259,9 +257,10 @@ const cartSlice = createSlice({
         handleLoading(state, false);
         if (action.payload.isGuest) {
           const existingItem = state.guestItems.find(
-            item => item.product_uid === action.payload.product_uid
+            item => item.product_uid === action.payload.product_uid &&
+            item.product_variant_id === action.payload.product_variant_id || null
           );
-          
+
           if (existingItem) {
             existingItem.product_count += action.payload.product_count;
           } else {
@@ -276,7 +275,8 @@ const cartSlice = createSlice({
               product_status: action.payload.product_status,
               category_uid: action.payload.category_uid,
               min_order_quantity: action.payload.min_order_quantity,
-              stock: action.payload.stock
+              stock: action.payload.stock,
+              product_variant_id: action.payload.product_variant_id || null
             });
           }
           updateGuestCart(state, state.guestItems);

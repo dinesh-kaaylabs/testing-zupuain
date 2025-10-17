@@ -243,6 +243,7 @@ export interface Product {
   product_image: ProductImage[];
   product_variants: ProductVariant[];
   product_ratings: ProductRating[];
+  variant_option: VariantOption[];
   coupon?: Coupon | null;
   zm_category?: Category;
   zm_sub_category?: SubCategory;
@@ -279,6 +280,32 @@ export interface VariantAttribute {
     name: string;
     data_type: string;
   };
+}
+
+export interface VariantOption {
+  option_id: number;
+  option_uid: string;
+  slug?: string | null;
+  option_name: string;
+  product_uid: string;
+  tenant_uid: string;
+  order: number;
+  creation_date: string;
+  modified_date: string;
+  deletedAt?: string | null;
+  variant_option_values: VariantOptionValue[];
+}
+
+export interface VariantOptionValue {
+  option_value_id: number;
+  option_value_uid: string;
+  option_uid: string;
+  option_value: string;
+  product_uid?: string | null;
+  order_key: number;
+  creation_date: string;
+  modified_date: string;
+  deletedAt?: string | null;
 }
 
 export interface ProductRating extends BaseEntity {
@@ -327,6 +354,7 @@ export interface CartItem {
   category_uid: string;
   min_order_quantity?: number;
   stock?: number;
+  product_variant_id?: string;
 }
 
 export interface Bag extends BaseEntity {
@@ -608,6 +636,12 @@ export interface Wishlist extends BaseEntity {
 }
 
 export interface WishlistResponse extends ApiResponse<Wishlist[]> {
+  count: number;
+}
+
+export interface ProductDetailsResponse {
+  success: boolean;
+  rows: Product[];
   count: number;
 }
 
