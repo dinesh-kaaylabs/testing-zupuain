@@ -56,7 +56,7 @@ interface ReviewStepProps {
 
 // Helper component to use the hook for each item
 const ReviewCartItem = ({ item }: { item: BagDetail | CartItem }) => {
-  const { name, image, price, quantity } = useCartItemData(item);
+  const { name, image, price, quantity, units } = useCartItemData(item);
 
   return (
     <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
@@ -70,7 +70,7 @@ const ReviewCartItem = ({ item }: { item: BagDetail | CartItem }) => {
           {name}
         </p>
         <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-          Qty: {quantity}
+          Qty: {quantity}{units ? ` ${units}` : ''}
         </p>
       </div>
       <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">

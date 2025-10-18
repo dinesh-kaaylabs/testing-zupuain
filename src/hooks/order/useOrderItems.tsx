@@ -8,6 +8,7 @@ interface OrderItemDisplay {
   name: string;
   image: string;
   quantity: number;
+  units?: string;
   unitPrice: number;
   unitPriceFormatted: string;
   totalPrice: number;
@@ -33,6 +34,7 @@ export const useOrderItems = (products: OrderProduct[]): UseOrderItemsReturn =>
       name: p.product_name,
       image: p.product_image || '/placeholder-product.png',
       quantity: p.product_count,
+      units: p.units,
       unitPrice: p.selling_price,
       unitPriceFormatted: formatCurrency(p.selling_price),
       totalPrice: p.selling_price * p.product_count,

@@ -24,7 +24,7 @@ interface SummarySidebarProps {
 
 // Helper component to use the hook for each item
 const CartItemPreview = ({ item }: { item: BagDetail | CartItem }) => {
-  const { name, image, quantity } = useCartItemData(item);
+  const { name, image, quantity, units } = useCartItemData(item);
 
   return (
     <div className="flex items-center space-x-2">
@@ -37,7 +37,9 @@ const CartItemPreview = ({ item }: { item: BagDetail | CartItem }) => {
         <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
           {name}
         </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400">Qty: {quantity}</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Qty: {quantity}{units ? ` ${units}` : ''}
+        </p>
       </div>
     </div>
   );

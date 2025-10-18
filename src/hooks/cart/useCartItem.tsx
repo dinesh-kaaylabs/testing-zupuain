@@ -39,6 +39,7 @@ interface UseCartItemReturn {
   pricing: ItemPricing;
   stockInfo: StockInfo;
   variantInfo: { variantId?: number | string; variantText?: string };
+  units?: string;
   isRemoving: boolean;
   isMovingToWishlist: boolean;
   isUpdating: boolean;
@@ -61,6 +62,12 @@ export const useCartItem = ({
   const itemInfo = getCartItemInfo(item);
   const { productUid, productCount, productVariantId, product } = itemInfo;
   const details = getProductDetails(item);
+  const fullInfo = useMemo(() => {
+    const isBag = 'bag_detail_id' in item;
+    return {
+      units: isBag ? item.units : undefined
+    };
+  }, [item]);
   
   const productInfo = useMemo(() => ({ 
     productName: details.name, 
@@ -133,6 +140,7 @@ export const useCartItem = ({
   // Consolidated return object
   return {
     productUid, productCount, productInfo, pricing, stockInfo, variantInfo,
+    units: fullInfo.units,
     isRemoving, isMovingToWishlist, isUpdating, isGuest,
     handleIncrement, handleDecrement, handleRemove, handleMoveToWishlist, formatCurrency,
   };

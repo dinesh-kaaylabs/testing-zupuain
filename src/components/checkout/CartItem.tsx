@@ -31,6 +31,7 @@ const CartItem: React.FC<CartItemProps> = ({
     pricing,
     stockInfo,
     variantInfo,
+    units,
     isRemoving,
     isMovingToWishlist,
     isUpdating: localUpdating,
@@ -159,7 +160,7 @@ const CartItem: React.FC<CartItemProps> = ({
               </button>
               
               <div className="px-4 py-2 min-w-[3rem] text-center font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-x-2 border-gray-300 dark:border-gray-600">
-                {productCount}
+                {productCount}{units ? ` ${units}` : ''}
               </div>
               
               <button

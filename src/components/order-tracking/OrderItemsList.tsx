@@ -7,6 +7,7 @@ interface OrderItem {
   name: string;
   image: string;
   quantity: number;
+  units?: string;
   unitPriceFormatted: string;
   totalPriceFormatted: string;
 }
@@ -67,7 +68,7 @@ const OrderItemsList = ({ items, totalItems }: OrderItemsListProps) => {
               </Link>
               
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <span>Qty: {item.quantity}</span>
+                <span>Qty: {item.quantity}{item.units ? ` ${item.units}` : ''}</span>
                 <span>•</span>
                 <span>Unit Price: {item.unitPriceFormatted}</span>
               </div>

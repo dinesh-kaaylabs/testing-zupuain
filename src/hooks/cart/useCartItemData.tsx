@@ -13,6 +13,7 @@ interface CartItemData {
   discountPercent?: number;
   stock?: number;
   isAvailable?: boolean;
+  units?: string;
 }
 
 const calcDiscount = (mrp: number, price: number) => {
@@ -47,6 +48,7 @@ export const useCartItemData = (item: BagDetail | CartItem): CartItemData => {
         isBag ? p?.track_inventory ?? false : item.track_inventory,
         stock ?? undefined
       ),
+      units: isBag ? item.units : undefined,
     };
   }, [item]);
 };

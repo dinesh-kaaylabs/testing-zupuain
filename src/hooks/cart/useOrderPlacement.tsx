@@ -70,6 +70,7 @@ export const useOrderPlacement = ({
         product_status: isBag ? product?.product_status || true : item.product_status,
         category_uid: isBag ? product?.category_uid || '' : item.category_uid,
         min_order_quantity: isBag ? product?.min_order_quantity || null : item.min_order_quantity || null,
+        id: isBag ? String(item.product_variant_id) : undefined,
       };
     }), []);
 
