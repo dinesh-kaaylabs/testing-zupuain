@@ -27,8 +27,7 @@ const initialState: CartState = {
 const localStorageOps = {
   get: (): CartItem[] => {
     try {
-      const cart = localStorage.getItem('guestCart');
-      return cart ? JSON.parse(cart) : [];
+      return JSON.parse(localStorage.getItem('guestCart') || '[]');
     } catch {
       return [];
     }
@@ -36,33 +35,22 @@ const localStorageOps = {
   set: (items: CartItem[]): void => {
     try {
       localStorage.setItem('guestCart', JSON.stringify(items));
-    } catch (error) {
-      console.error('Failed to save cart to localStorage:', error);
+    } catch (e) {
+      console.error('Failed to save cart:', e);
     }
   },
-  remove: (): void => {
-    try {
-      localStorage.removeItem('guestCart');
-    } catch (error) {
-      console.error('Failed to remove cart from localStorage:', error);
-    }
-  }
+  remove: (): void => localStorage.removeItem('guestCart')
 };
 
 // Helper function to calculate cart totals
 const calculateCartTotals = (state: CartState) => {
-  let totalItems = 0;
-  let totalAmount = 0;
+  let totalItems = 0, totalAmount = 0;
 
-  if (state.bags.length > 0) {
-    state.bags.forEach(bag => {
-      if (bag.bag_details?.length) {
-        bag.bag_details.forEach(detail => {
-          totalItems += detail.product_count || 0;
-          totalAmount += (detail.selling_price || 0) * (detail.product_count || 0);
-        });
-      }
-    });
+  if (state.bags.length) {
+    state.bags.forEach(bag => bag.bag_details?.forEach(d => {
+      totalItems += d.product_count || 0;
+      totalAmount += (d.selling_price || 0) * (d.product_count || 0);
+    }));
   } else {
     state.guestItems.forEach(item => {
       totalItems += item.product_count || 0;
@@ -80,18 +68,13 @@ const handleAsyncError = (error: any): string => error.message || 'Network error
 export const fetchBag = createAsyncThunk(
   'cart/fetchBag',
   async (store_uid: string, { rejectWithValue, getState }) => {
-    const state = getState() as RootState;
-    const isAuthenticated = state.auth.isAuthenticated;
+    const { auth } = getState() as RootState;
     
     try {
-      if (!isAuthenticated) {
-        return { isGuest: true, data: localStorageOps.get() };
-      }
+      if (!auth.isAuthenticated) return { isGuest: true, data: localStorageOps.get() };
       
       const response = await cartApi.getBag(store_uid);
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to fetch cart');
-      }
+      if (!response.success) return rejectWithValue(response.message || 'Failed to fetch cart');
       return { isGuest: false, data: response.data || [] };
     } catch (error: any) {
       return rejectWithValue(handleAsyncError(error));
@@ -99,40 +82,59 @@ export const fetchBag = createAsyncThunk(
   }
 );
 
+// Helper to build product payload
+const buildProductPayload = (data: any) => ({
+  product_uid: data.product_uid,
+  product_count: data.product_count,
+  track_inventory: data.track_inventory,
+  product_status: data.product_status,
+  product_variant_id: data?.product_variant_id || undefined,
+  id: data?.product_variant_id || undefined,
+  product_id: parseInt(data.price),
+  price: data.price,
+  mrp: data.mrp,
+  min_order_quantity: data.min_order_quantity,
+});
+
 export const addToCart = createAsyncThunk(
   'cart/addToCart',
   async (data: any, { rejectWithValue, getState }) => {
-    const state = getState() as RootState;
-    const { isAuthenticated } = state.auth;
-    const { defaultStore } = state.store;
-    if (!isAuthenticated) {
-      return { ...data, isGuest: true };
-    }
-    if (!defaultStore?.store_uid) {
-      return rejectWithValue('Store not available');
-    }
+    const { auth, store } = getState() as RootState;
+    if (!auth.isAuthenticated) return { ...data, isGuest: true };
+    if (!store.defaultStore?.store_uid) return rejectWithValue('Store not available');
+    
     try {
       const response = await cartApi.addToCart({
-        product: {
-          product_uid: data.product_uid,
-          product_count: data.product_count,
-          track_inventory: data.track_inventory,
-          product_status: data.product_status,
-          product_variant_id: data?.product_variant_id || undefined,
-          id: data?.product_variant_id || undefined,
-          product_id: parseInt(data.price),
-          price: data.price,
-          mrp: data.mrp,
-          min_order_quantity: data.min_order_quantity,
-        },
+        product: buildProductPayload(data),
         slugData: 'CART',
-        store_uid: defaultStore.store_uid,
+        store_uid: store.defaultStore.store_uid,
       });
 
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to add to cart');
-      }
+      if (!response.success) return rejectWithValue(response.message || 'Failed to add to cart');
       return { ...data, isGuest: false };
+    } catch (error: any) {
+      return rejectWithValue(handleAsyncError(error));
+    }
+  }
+);
+
+// Buy Now - adds product with BUY slug for direct checkout
+export const buyNow = createAsyncThunk(
+  'cart/buyNow',
+  async (data: any, { rejectWithValue, getState }) => {
+    const { auth, store } = getState() as RootState;
+    if (!auth.isAuthenticated) return { ...data, isGuest: true, slug: 'BUY' };
+    if (!store.defaultStore?.store_uid) return rejectWithValue('Store not available');
+    
+    try {
+      const response = await cartApi.addToCart({
+        product: buildProductPayload(data),
+        slugData: 'BUY',
+        store_uid: store.defaultStore.store_uid,
+      });
+
+      if (!response.success) return rejectWithValue(response.message || 'Failed to process buy now');
+      return { ...data, isGuest: false, slug: 'BUY' };
     } catch (error: any) {
       return rejectWithValue(handleAsyncError(error));
     }
@@ -141,27 +143,18 @@ export const addToCart = createAsyncThunk(
 
 // Generic cart operation thunk factory
 const createCartOperationThunk = (name: string, apiCall: (data: any) => Promise<any>, errorMessage: string) =>
-  createAsyncThunk(
-    `cart/${name}`,
-    async (data: any, { rejectWithValue, getState }) => {
-      const state = getState() as RootState;
-      const { isAuthenticated } = state.auth;
+  createAsyncThunk(`cart/${name}`, async (data: any, { rejectWithValue, getState }) => {
+    const { auth } = getState() as RootState;
+    if (!auth.isAuthenticated) return { product_uid: data.product_uid, isGuest: true };
 
-      if (!isAuthenticated) {
-        return { product_uid: data.product_uid, isGuest: true };
-      }
-
-      try {        
-        const response = await apiCall(data);
-        if (!response.success) {
-          return rejectWithValue(response.message || errorMessage);
-        }
-        return { product_uid: data.product_uid, isGuest: false };
-      } catch (error: any) {
-        return rejectWithValue(handleAsyncError(error));
-      }
+    try {        
+      const response = await apiCall(data);
+      if (!response.success) return rejectWithValue(response.message || errorMessage);
+      return { product_uid: data.product_uid, isGuest: false };
+    } catch (error: any) {
+      return rejectWithValue(handleAsyncError(error));
     }
-  );
+  });
 
 export const incrementQuantity = createCartOperationThunk(
   'incrementQuantity',
@@ -184,10 +177,10 @@ export const removeFromCart = createCartOperationThunk(
 export const syncGuestCart = createAsyncThunk(
   'cart/syncGuestCart',
   async (data: { guestItems: CartItem[]; store_uid: string }, { rejectWithValue }) => {
-    if (data.guestItems.length === 0) return [];
+    if (!data.guestItems.length) return [];
 
     try {
-      const bulkRequest = {
+      const response = await cartApi.createBulkBagProduct({
         product: data.guestItems.map(item => ({
           product_uid: item.product_uid,
           product_count: item.product_count,
@@ -202,12 +195,9 @@ export const syncGuestCart = createAsyncThunk(
           product_variant_id: item.product_variant_id,
         })),
         store_uid: data.store_uid,
-      };
-
-      const response = await cartApi.createBulkBagProduct(bulkRequest);
-      if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to sync cart');
-      }
+      });
+      
+      if (!response.success) return rejectWithValue(response.message || 'Failed to sync cart');
       return data.guestItems;
     } catch (error: any) {
       return rejectWithValue(handleAsyncError(error));
@@ -258,13 +248,13 @@ const cartSlice = createSlice({
       .addCase(addToCart.fulfilled, (state, action) => {
         handleLoading(state, false);
         if (action.payload.isGuest) {
-          const existingItem = state.guestItems.find(
+          const existing = state.guestItems.find(
             item => item.product_uid === action.payload.product_uid &&
             (item.product_variant_id || null) === (action.payload.product_variant_id || null)
           );
 
-          if (existingItem) {
-            existingItem.product_count += action.payload.product_count;
+          if (existing) {
+            existing.product_count += action.payload.product_count;
           } else {
             state.guestItems.push({
               product_uid: action.payload.product_uid,
@@ -286,14 +276,37 @@ const cartSlice = createSlice({
         }
         calculateCartTotals(state);
       })
-      .addCase(addToCart.rejected, (state, action) => 
-        handleLoading(state, false, action.payload as string))
+      .addCase(addToCart.rejected, (state, action) => handleLoading(state, false, action.payload as string))
+      
+      // Buy Now - handles same as addToCart but with BUY slug
+      .addCase(buyNow.pending, (state) => handleLoading(state, true))
+      .addCase(buyNow.fulfilled, (state, action) => {
+        handleLoading(state, false);
+        if (action.payload.isGuest) {
+          localStorage.setItem('buyNowItem', JSON.stringify({
+            product_uid: action.payload.product_uid,
+            product_count: action.payload.product_count,
+            price: action.payload.price,
+            mrp: action.payload.mrp,
+            product_name: action.payload.product_name,
+            product_image: action.payload.product_image,
+            track_inventory: action.payload.track_inventory,
+            product_status: action.payload.product_status,
+            category_uid: action.payload.category_uid,
+            min_order_quantity: action.payload.min_order_quantity,
+            stock: action.payload.stock,
+            product_variant_id: action.payload.product_variant_id || null,
+            product_variant_text: action.payload.product_variant_text || undefined
+          }));
+        }
+      })
+      .addCase(buyNow.rejected, (state, action) => handleLoading(state, false, action.payload as string))
       
       // Quantity operations
       .addCase(incrementQuantity.pending, (state) => { state.error = null; })
       .addCase(incrementQuantity.fulfilled, (state, action) => {
         if (action.payload.isGuest) {
-          const item = state.guestItems.find(item => item.product_uid === action.payload.product_uid);
+          const item = state.guestItems.find(i => i.product_uid === action.payload.product_uid);
           if (item) {
             item.product_count += 1;
             updateGuestCart(state, state.guestItems);
@@ -306,11 +319,10 @@ const cartSlice = createSlice({
       .addCase(decrementQuantity.pending, (state) => { state.error = null; })
       .addCase(decrementQuantity.fulfilled, (state, action) => {
         if (action.payload.isGuest) {
-          const item = state.guestItems.find(item => item.product_uid === action.payload.product_uid);
+          const item = state.guestItems.find(i => i.product_uid === action.payload.product_uid);
           if (item) {
             if (item.product_count <= 1) {
-              const filteredItems = state.guestItems.filter(i => i.product_uid !== action.payload.product_uid);
-              updateGuestCart(state, filteredItems);
+              updateGuestCart(state, state.guestItems.filter(i => i.product_uid !== action.payload.product_uid));
             } else {
               item.product_count -= 1;
               updateGuestCart(state, state.guestItems);
@@ -324,10 +336,7 @@ const cartSlice = createSlice({
       .addCase(removeFromCart.pending, (state) => { state.error = null; })
       .addCase(removeFromCart.fulfilled, (state, action) => {
         if (action.payload.isGuest) {
-          const filteredItems = state.guestItems.filter(
-            item => item.product_uid !== action.payload.product_uid
-          );
-          updateGuestCart(state, filteredItems);
+          updateGuestCart(state, state.guestItems.filter(i => i.product_uid !== action.payload.product_uid));
         }
         state.error = null;
       })

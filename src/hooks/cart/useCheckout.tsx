@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux';
 import { useToast } from '../ui/useToast';
 import { fetchUserAddresses } from '../../store/slices/addressSlice';
@@ -135,6 +135,7 @@ export const useCheckout = (): UseCheckoutReturn => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
+  const [searchParams] = useSearchParams();
 
   const {
     isAuthenticated, user, addresses, addressLoading, addressError,
@@ -152,9 +153,25 @@ export const useCheckout = (): UseCheckoutReturn => {
   const [selectedDeliverySlot, setSelectedDeliverySlotLocal] = useState<DeliverySlot | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Extract query parameters for filtering (Buy Now flow)
+  const filterParams = useMemo(() => {
+    const product_uid = searchParams.get('product_uid');
+    const variant_id = searchParams.get('variant_id');
+    const slug = searchParams.get('slug');
+    
+    if (slug === 'BUY' && product_uid) {
+      return {
+        product_uid,
+        variant_id: variant_id || undefined,
+        slug
+      };
+    }
+    return undefined;
+  }, [searchParams]);
+
   // Derived values
   const isGuest = !isAuthenticated;
-  const cartItems = useDerivedCartItems(isGuest, guestItems, bags);
+  const cartItems = useDerivedCartItems(isGuest, guestItems, bags, filterParams);
   const isOnlinePayment = reduxSelectedPayment?.slug === 'razorpay' || reduxSelectedPayment?.slug === 'online';
   
   // Coupon management
@@ -206,6 +223,11 @@ export const useCheckout = (): UseCheckoutReturn => {
     isDeliverySlotActive,
   });
 
+  // Determine slugData based on query params
+  const orderSlugData = useMemo(() => {
+    return filterParams?.slug === 'BUY' ? 'BUY' : 'CART';
+  }, [filterParams]);
+
   // Order placement
   const {
     orderUid,
@@ -230,6 +252,7 @@ export const useCheckout = (): UseCheckoutReturn => {
     pricing,
     storeUid: defaultStore?.store_uid || '',
     isDeliverySlotActive,
+    slugData: orderSlugData, // Pass the dynamic slug
   });
 
   // Handle successful order confirmation
@@ -255,9 +278,12 @@ export const useCheckout = (): UseCheckoutReturn => {
   // Authentication check
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login?redirect=/checkout');
+      // Preserve query parameters when redirecting to login
+      const queryString = searchParams.toString();
+      const redirectUrl = queryString ? `/login?redirect=/checkout?${queryString}` : '/login?redirect=/checkout';
+      navigate(redirectUrl);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, searchParams]);
   
   // Fetch initial data on mount - optimized with single effect
   useEffect(() => {

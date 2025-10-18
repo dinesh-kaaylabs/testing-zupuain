@@ -1,4 +1,5 @@
 import { useCheckout } from '../hooks/cart/useCheckout';
+import { useSearchParams } from 'react-router-dom';
 import SEOHead from '../components/common/SEOHead';
 import { CheckoutProgress } from '../components/checkout/CheckoutProgress';
 import { AddressStep } from '../components/checkout/AddressStep';
@@ -11,6 +12,7 @@ import { CheckoutSkeleton } from '../components/checkout/CheckoutSkeleton';
 import { CheckoutStep as Step } from '../hooks/cart/useCheckout';
 
 const CheckoutPage = () => {
+  const [searchParams] = useSearchParams();
   const checkout = useCheckout();
   const {
     currentStep,
@@ -29,6 +31,9 @@ const CheckoutPage = () => {
     paymentLoading,
     cartItems,
   } = checkout;
+
+  // Check if we're in Buy Now mode
+  const isBuyNowMode = searchParams.get('slug') === 'BUY';
 
   // Show skeleton while initial data is loading
   if ((addressLoading || paymentLoading) && cartItems.length === 0) {
@@ -74,6 +79,18 @@ const CheckoutPage = () => {
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8">
         <div className="container mx-auto px-4">
+          {/* Buy Now Mode Indicator */}
+          {isBuyNowMode && currentStep !== 'confirmation' && (
+            <div className="mb-4 max-w-7xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-lg text-sm font-medium shadow-sm">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Buy Now - Express Checkout
+              </div>
+            </div>
+          )}
+
           {/* Confirmation step takes full width */}
           {currentStep === 'confirmation' ? (
             <div className="max-w-4xl mx-auto">

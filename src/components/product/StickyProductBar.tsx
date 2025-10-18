@@ -1,30 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ProductDisplayData } from '../../utils/productUtils';
 
 interface StickyProductBarProps {
   displayData: ProductDisplayData;
   isInWishlist: boolean;
+  isVisible: boolean;
+  isBuying: boolean;
   onAddToCart: () => void;
   onToggleWishlist: () => void;
+  onBuyNow: () => void;
 }
 
 const StickyProductBar: React.FC<StickyProductBarProps> = ({
   displayData,
   isInWishlist,
+  isVisible,
+  isBuying,
   onAddToCart,
   onToggleWishlist,
+  onBuyNow,
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Show sticky bar after scrolling 400px
-      setIsVisible(window.scrollY > 400);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   return (
     <div
@@ -59,11 +54,11 @@ const StickyProductBar: React.FC<StickyProductBarProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Wishlist Button */}
             <button
               onClick={onToggleWishlist}
-              className={`p-3 rounded-lg transition-all duration-300 hidden sm:flex items-center justify-center ${
+              className={`p-3 rounded-lg transition-all duration-300 hidden md:flex items-center justify-center ${
                 isInWishlist
                   ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -84,13 +79,37 @@ const StickyProductBar: React.FC<StickyProductBarProps> = ({
               </svg>
             </button>
 
+            {/* Buy Now Button */}
+            <button
+              onClick={onBuyNow}
+              disabled={!displayData.canAddToCart || isBuying}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
+                displayData.canAddToCart && !isBuying
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-md hover:shadow-lg'
+                  : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isBuying ? (
+                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              <span className="hidden sm:inline">
+                {isBuying ? 'Processing...' : 'Buy Now'}
+              </span>
+            </button>
+
             {/* Add to Cart Button */}
             <button
               onClick={onAddToCart}
               disabled={!displayData.canAddToCart}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
+              className={`px-4 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
                 displayData.canAddToCart
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
                   : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
               }`}
             >

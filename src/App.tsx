@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import ToastProvider from './components/ui/ToastProvider';
 import InvalidTokenProvider from './components/common/InvalidTokenProvider';
+import BuyToCartSyncProvider from './components/common/BuyToCartSyncProvider';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import RouteWrapper from './components/common/RouteWrapper';
@@ -45,21 +46,23 @@ const App = memo(() => {
           <SEOHead />
           <ToastProvider />
           <InvalidTokenProvider>
-            <Routes>
-              {routes.map(({ path, element, fallback, layout = true }) => (
-                <Route
-                  key={path}
-                  path={path}
-                  element={
-                    <LayoutWrapper showHeader={layout} showFooter={layout}>
-                      <RouteWrapper fallback={fallback}>
-                        {element}
-                      </RouteWrapper>
-                    </LayoutWrapper>
-                  }
-                />
-              ))}
-            </Routes>
+            <BuyToCartSyncProvider>
+              <Routes>
+                {routes.map(({ path, element, fallback, layout = true }) => (
+                  <Route
+                    key={path}
+                    path={path}
+                    element={
+                      <LayoutWrapper showHeader={layout} showFooter={layout}>
+                        <RouteWrapper fallback={fallback}>
+                          {element}
+                        </RouteWrapper>
+                      </LayoutWrapper>
+                    }
+                  />
+                ))}
+              </Routes>
+            </BuyToCartSyncProvider>
           </InvalidTokenProvider>
         </Router>
       </ThemeProvider>

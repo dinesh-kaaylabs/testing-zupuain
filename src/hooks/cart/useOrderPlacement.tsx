@@ -34,6 +34,7 @@ interface UseOrderPlacementProps {
   };
   storeUid: string;
   isDeliverySlotActive: boolean;
+  slugData?: 'BUY' | 'CART'; // Optional slug parameter
 }
 
 export const useOrderPlacement = ({
@@ -47,6 +48,7 @@ export const useOrderPlacement = ({
   pricing,
   storeUid,
   isDeliverySlotActive,
+  slugData = 'CART', // Default to 'CART' if not provided
 }: UseOrderPlacementProps) => {
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
@@ -137,7 +139,7 @@ export const useOrderPlacement = ({
         discount_percent: appliedCoupon?.coupon_percentage || 0,
         final_price: pricing.total,
         price: pricing.subtotal,
-        slugData: 'CART',
+        slugData: slugData, // Use the dynamic slug value
         userBag: buildUserBagItems(cartItems),
         buyer_gst_number: null,
         checkout_flag: 1,
@@ -153,6 +155,7 @@ export const useOrderPlacement = ({
         store_uid: storeUid,
       };
 
+      console.log('📤 Creating order with slugData:', slugData);
       console.log('📤 Creating order with request:', orderRequest);
       const result = await dispatch(createOrder(orderRequest)).unwrap();
       console.log('✅ Order creation result:', result);

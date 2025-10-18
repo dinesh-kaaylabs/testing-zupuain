@@ -1,54 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Product } from '../../types/api';
+import React from 'react';
 import { ProductDisplayData } from '../../utils/productUtils';
 import { VariantDisplayData } from '../../hooks/product/useProductVariants';
 
 interface PurchaseSectionProps {
-  product: Product;
   displayData: ProductDisplayData;
   isInWishlist: boolean;
-  onAddToCart: (quantity: number) => void;
+  quantity: number;
+  isBuying: boolean;
+  onAddToCart: () => void;
   onToggleWishlist: () => void;
+  onBuyNow: () => void;
+  onQuantityIncrement: () => void;
+  onQuantityDecrement: () => void;
+  onQuantityChange: (value: number) => void;
   variantDisplayData?: VariantDisplayData | null;
 }
 
 const PurchaseSection: React.FC<PurchaseSectionProps> = ({
-  product,
   displayData,
   isInWishlist,
+  quantity,
+  isBuying,
   onAddToCart,
   onToggleWishlist,
+  onBuyNow,
+  onQuantityIncrement,
+  onQuantityDecrement,
+  onQuantityChange,
   variantDisplayData,
 }) => {
-  const [quantity, setQuantity] = useState(displayData.minOrderQuantity);
-  
   // Use variant data if available, otherwise fall back to product data
   const effectiveDisplayData = variantDisplayData || displayData;
-  
-  // Reset quantity when variant changes
-  useEffect(() => {
-    setQuantity(displayData.minOrderQuantity);
-  }, [variantDisplayData, displayData.minOrderQuantity]);
 
-  const handleIncrement = () => {
-    setQuantity((prev) => prev + 1);
-  };
-
-  const handleDecrement = () => {
-    if (quantity > displayData.minOrderQuantity) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQuantityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     if (!isNaN(value) && value >= displayData.minOrderQuantity) {
-      setQuantity(value);
+      onQuantityChange(value);
     }
-  };
-
-  const handleAddToCart = () => {
-    onAddToCart(quantity);
   };
 
   return (
@@ -62,7 +50,7 @@ const PurchaseSection: React.FC<PurchaseSectionProps> = ({
           {/* Quantity Controls */}
           <div className="flex items-center border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
             <button
-              onClick={handleDecrement}
+              onClick={onQuantityDecrement}
               disabled={quantity <= displayData.minOrderQuantity || !effectiveDisplayData.canAddToCart}
               className={`px-4 py-3 transition-colors ${
                 quantity <= displayData.minOrderQuantity || !effectiveDisplayData.canAddToCart
@@ -78,14 +66,14 @@ const PurchaseSection: React.FC<PurchaseSectionProps> = ({
             <input
               type="number"
               value={quantity}
-              onChange={handleQuantityChange}
+              onChange={handleQuantityInputChange}
               disabled={!effectiveDisplayData.canAddToCart}
               min={displayData.minOrderQuantity}
               className="w-20 px-4 py-3 text-center text-lg font-semibold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-x-2 border-gray-300 dark:border-gray-600 focus:outline-none disabled:opacity-50"
               aria-label="Quantity"
             />
             <button
-              onClick={handleIncrement}
+              onClick={onQuantityIncrement}
               disabled={!effectiveDisplayData.canAddToCart}
               className={`px-4 py-3 transition-colors ${
                 !effectiveDisplayData.canAddToCart
@@ -111,21 +99,51 @@ const PurchaseSection: React.FC<PurchaseSectionProps> = ({
 
       {/* Action Buttons */}
       <div className="space-y-3">
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={!effectiveDisplayData.canAddToCart}
-          className={`w-full py-4 rounded-lg font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
-            effectiveDisplayData.canAddToCart
-              ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-              : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          {effectiveDisplayData.canAddToCart ? 'Add to Cart' : 'Out of Stock'}
-        </button>
+        {/* Buy Now and Add to Cart Buttons - Side by Side */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Buy Now Button */}
+          <button
+            onClick={onBuyNow}
+            disabled={!effectiveDisplayData.canAddToCart || isBuying}
+            className={`py-4 rounded-lg font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
+              effectiveDisplayData.canAddToCart && !isBuying
+                ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isBuying ? (
+              <>
+                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="text-base">Processing...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="text-base">Buy Now</span>
+              </>
+            )}
+          </button>
+
+          {/* Add to Cart Button */}
+          <button
+            onClick={onAddToCart}
+            disabled={!effectiveDisplayData.canAddToCart}
+            className={`py-4 rounded-lg font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
+              effectiveDisplayData.canAddToCart
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span className="text-base">{effectiveDisplayData.canAddToCart ? 'Add to Cart' : 'Out of Stock'}</span>
+          </button>
+        </div>
 
         {/* Wishlist Button */}
         <button

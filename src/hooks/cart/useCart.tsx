@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux';
 import { 
   fetchBag, 
@@ -139,6 +139,7 @@ export const useCart = (): UseCartReturn => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { success, error: showError } = useToast();
+  const [searchParams] = useSearchParams();
 
   const { 
     bags, guestItems, loading, error, totalAmount,
@@ -159,8 +160,24 @@ export const useCart = (): UseCartReturn => {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showCouponList, setShowCouponList] = useState(false);
 
+  // Extract query parameters for filtering (Buy Now flow)
+  const filterParams = useMemo(() => {
+    const product_uid = searchParams.get('product_uid');
+    const variant_id = searchParams.get('variant_id');
+    const slug = searchParams.get('slug');
+    
+    if (slug === 'BUY' && product_uid) {
+      return {
+        product_uid,
+        variant_id: variant_id || undefined,
+        slug
+      };
+    }
+    return undefined;
+  }, [searchParams]);
+
   const isGuest = !isAuthenticated;
-  const cartItems = useDerivedCartItems(isGuest, guestItems, bags);
+  const cartItems = useDerivedCartItems(isGuest, guestItems, bags, filterParams);
   const totalItems = cartItems.reduce((sum, item) => sum + item.product_count, 0);
   const couponConfig = useMemo(() => ({
     isAuthenticated,
@@ -291,9 +308,15 @@ export const useCart = (): UseCartReturn => {
   }, [cartItems, dispatch, handleRemove, isGuest, defaultStore, success, showError]);
   const handleCheckout = useCallback(() => {
     if (!cartItems.length) return showError('Your cart is empty');
-    if (isGuest) return navigate('/login?redirect=/checkout');
-    navigate('/checkout', { state: { appliedCoupon, pricing } });
-  }, [cartItems.length, isGuest, navigate, appliedCoupon, pricing, showError]);
+    
+    // Preserve query parameters when navigating to checkout
+    const queryString = searchParams.toString();
+    const checkoutUrl = queryString ? `/checkout?${queryString}` : '/checkout';
+    const loginRedirectUrl = queryString ? `/login?redirect=/checkout?${queryString}` : '/login?redirect=/checkout';
+    
+    if (isGuest) return navigate(loginRedirectUrl);
+    navigate(checkoutUrl, { state: { appliedCoupon, pricing } });
+  }, [cartItems.length, isGuest, navigate, appliedCoupon, pricing, showError, searchParams]);
 
   // Handle coupon list toggle
   const handleToggleCouponList = useCallback((show: boolean) => {

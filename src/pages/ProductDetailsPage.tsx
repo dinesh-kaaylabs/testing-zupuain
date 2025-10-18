@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useProductDetails } from '../hooks/product/useProductDetails';
 import { useProductUtils } from '../hooks/product/useProductUtils';
 import { useProductVariants } from '../hooks/product/useProductVariants';
@@ -6,6 +6,7 @@ import { useCartActions } from '../hooks/cart/useCartActions';
 import { useWishlistActions } from '../hooks/wishlist/useWishlistActions';
 import { useAppSelector } from '../hooks/redux/useAppSelector';
 import { useToast } from '../hooks/ui/useToast';
+import { useBuyNow } from '../hooks/cart/useBuyNow';
 import SEOHead from '../components/common/SEOHead';
 import ProductGallery from '../components/product/ProductGallery';
 import ProductInfo from '../components/product/ProductInfo';
@@ -24,6 +25,7 @@ const ProductDetailsPage: React.FC = () => {
   const { handleAddToCart } = useCartActions();
   const { isInWishlist, handleToggleWishlist } = useWishlistActions();
   const { success } = useToast();
+  const { handleBuyNow: executeBuyNow, isBuying } = useBuyNow();
   const categories = useAppSelector((state) => state.product.categories);
 
   // Variant handling
@@ -37,6 +39,8 @@ const ProductDetailsPage: React.FC = () => {
   } = useProductVariants(product);
 
   const [copiedLink, setCopiedLink] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
 
   // Format product for display - only 2 params
   const displayData = useMemo(() => {
@@ -44,12 +48,67 @@ const ProductDetailsPage: React.FC = () => {
     return formatProductForDisplay(product, reviews);
   }, [product, reviews, formatProductForDisplay]);
 
+  // Reset quantity when variant or product changes
+  useEffect(() => {
+    if (displayData) {
+      setQuantity(displayData.minOrderQuantity);
+    }
+  }, [displayData, currentVariant]);
+
+  // Sticky bar scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsStickyBarVisible(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Quantity handlers
+  const handleQuantityIncrement = () => {
+    setQuantity((prev) => prev + 1);
+  };
+
+  const handleQuantityDecrement = () => {
+    if (displayData && quantity > displayData.minOrderQuantity) {
+      setQuantity((prev) => prev - 1);
+    }
+  };
+
+  const handleQuantityChange = (value: number) => {
+    setQuantity(value);
+  };
+
   // Handle add to cart
-  const handleAddToCartWithQuantity = (quantity: number) => {
+  const handleAddToCartClick = () => {
     if (product && displayData) {
       const variantId = currentVariant?.id || null;
-
       handleAddToCart(product, displayData, quantity, variantId);
+    }
+  };
+
+  // Handle Buy Now
+  const handleBuyNowClick = async () => {
+    if (product && displayData) {
+      const variantId = currentVariant?.id || null;
+      await executeBuyNow(product, displayData, quantity, variantId);
+    }
+  };
+
+  // Handle Buy Now for sticky bar (uses min quantity)
+  const handleStickyBuyNowClick = async () => {
+    if (product && displayData) {
+      const variantId = currentVariant?.id || null;
+      await executeBuyNow(product, displayData, displayData.minOrderQuantity, variantId);
+    }
+  };
+
+  // Handle add to cart for sticky bar (uses min quantity)
+  const handleStickyAddToCartClick = () => {
+    if (product && displayData) {
+      const variantId = currentVariant?.id || null;
+      handleAddToCart(product, displayData, displayData.minOrderQuantity, variantId);
     }
   };
 
@@ -152,8 +211,11 @@ const ProductDetailsPage: React.FC = () => {
       <StickyProductBar
         displayData={displayData}
         isInWishlist={isInWishlist(product.product_uid)}
-        onAddToCart={() => handleAddToCartWithQuantity(displayData.minOrderQuantity)}
+        isVisible={isStickyBarVisible}
+        isBuying={isBuying}
+        onAddToCart={handleStickyAddToCartClick}
         onToggleWishlist={handleWishlistToggle}
+        onBuyNow={handleStickyBuyNowClick}
       />
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -255,11 +317,16 @@ const ProductDetailsPage: React.FC = () => {
 
               {/* Purchase Section */}
               <PurchaseSection
-                product={product}
                 displayData={displayData}
                 isInWishlist={isInWishlist(product.product_uid)}
-                onAddToCart={handleAddToCartWithQuantity}
+                quantity={quantity}
+                isBuying={isBuying}
+                onAddToCart={handleAddToCartClick}
                 onToggleWishlist={handleWishlistToggle}
+                onBuyNow={handleBuyNowClick}
+                onQuantityIncrement={handleQuantityIncrement}
+                onQuantityDecrement={handleQuantityDecrement}
+                onQuantityChange={handleQuantityChange}
                 variantDisplayData={variantDisplayData}
               />
             </div>

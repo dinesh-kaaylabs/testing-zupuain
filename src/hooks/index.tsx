@@ -56,6 +56,7 @@ export { useCartItem } from './cart/useCartItem';
 export { useCartItemData } from './cart/useCartItemData';
 export { useCouponInput } from './cart/useCouponInput';
 export { usePricingSummary } from './cart/usePricingSummary';
+export { useBuyToCartSync } from './cart/useBuyToCartSync';
 
 // Account hooks
 export {

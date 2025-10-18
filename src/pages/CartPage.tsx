@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SEOHead from '../components/common/SEOHead';
 import { useCart } from '../hooks/cart/useCart';
 import CartItem from '../components/checkout/CartItem';
@@ -10,6 +11,8 @@ import EmptyCart from '../components/checkout/EmptyCart';
 import CartSkeleton from '../components/checkout/CartSkeleton';
 
 const CartPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  
   // PRIMARY MEGA-HOOK - integrates useCoupon + usePricing internally
   const {
     cartItems,
@@ -42,6 +45,9 @@ const CartPage: React.FC = () => {
     handleToggleCouponList,
     handleSelectCoupon,
   } = useCart();
+
+  // Check if we're in Buy Now mode
+  const isBuyNowMode = searchParams.get('slug') === 'BUY';
 
   // Check if any item is being updated
   const isAnyItemUpdating = isUpdating;
@@ -78,11 +84,22 @@ const CartPage: React.FC = () => {
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              Shopping Cart
+              {isBuyNowMode ? 'Checkout' : 'Shopping Cart'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {totalItems} {totalItems === 1 ? 'item' : 'items'} in your cart
+              {isBuyNowMode 
+                ? 'Review your item and proceed to checkout'
+                : `${totalItems} ${totalItems === 1 ? 'item' : 'items'} in your cart`
+              }
             </p>
+            {isBuyNowMode && (
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-lg text-sm font-medium">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Buy Now - Quick Checkout
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
