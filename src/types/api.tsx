@@ -355,6 +355,7 @@ export interface CartItem {
   min_order_quantity?: number;
   stock?: number;
   product_variant_id?: string;
+  product_variant_text?: string;
 }
 
 export interface Bag extends BaseEntity {

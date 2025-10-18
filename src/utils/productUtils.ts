@@ -104,25 +104,45 @@ export const getProductDisplayName = (product: Product, max = DEFAULTS.MAX_PRODU
 export const getProductBrand = (product: Product) => product?.product_brand || null;
 export const isProductAvailable = (product: Product) => product.product_status && !isOutOfStock(product);
 export const canAddToCart = (product: Product) => isProductAvailable(product);
-export const getMinOrderQuantity = (product: Product) => product.min_order_quantity || 1;
+export const getMinOrderQuantity = (product: Product) => product.min_order_quantity || 1;``
 
 export const getDefaultVariantId = (product: Product): string | null => 
   product.product_variants?.length ? product.product_variants[0].id : null;
 
-export const createCartItem = (product: Product, displayData: ProductDisplayData, count = 1, variantId?: string | null) => ({
-  product_uid: product.product_uid,
-  product_count: count,
-  price: product.price,
-  mrp: product.mrp || product.price,
-  product_name: displayData.displayName,
-  product_image: displayData.primaryImage,
-  track_inventory: product.track_inventory,
-  product_status: product.product_status,
-  category_uid: product.category_uid,
-  min_order_quantity: product.min_order_quantity || 1,
-  stock: product.stock || 0,
-  product_variant_id: variantId || undefined,
-});
+export const createCartItem = (product: Product, displayData: ProductDisplayData, count = 1, variantId?: string | null) => {
+  // Get variant text if variant is selected
+  let variantText: string | undefined = undefined;
+  if (variantId && product.product_variants?.length) {
+    const variant = product.product_variants.find(v => v.id === variantId);
+    if (variant?.variant_attributes?.length) {
+      // Filter out internal attributes - only show user-facing variant options
+      const internalAttributes = ['Selling Price', 'MRP Price', 'Discount in %', 'Stock', 'Product Code', 'Image', 'Color Code', 'Discount Amount', 'Manufacture date', 'Width (in cm)', 'Height (in cm)', 'Weight (in kg)', 'Length (in cm)', 'Minimum Order Quantity', 'Including TAX', 'Low Stock Level'];
+      
+      const displayAttributes = variant.variant_attributes
+        .filter(attr => !internalAttributes.includes(attr.zm_attribute.name))
+        .map(attr => `${attr.zm_attribute.name}: ${attr.attribute_value}`);
+      
+      variantText = displayAttributes.length > 0 ? displayAttributes.join(', ') : undefined;
+    }
+  }
+
+  return {
+    product_uid: product.product_uid,
+    product_count: count,
+    price: product.price,
+    mrp: product.mrp || product.price,
+    product_name: displayData.displayName,
+    product_image: displayData.primaryImage,
+    track_inventory: product.track_inventory,
+    product_status: product.product_status,
+    category_uid: product.category_uid,
+    min_order_quantity: product.min_order_quantity || 1,
+    stock: product.stock || 0,
+    product_variant_id: variantId || undefined,
+    product_variant_text: variantText,
+    id:variantId || undefined,
+  };
+};
 
 export const formatProductForDisplay = (product: Product, tenant?: Tenant | null, ratings: ProductRating[] = []): ProductDisplayData => {
   const mrp = getMRP(product);

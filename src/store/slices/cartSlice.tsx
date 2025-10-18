@@ -119,6 +119,7 @@ export const addToCart = createAsyncThunk(
           track_inventory: data.track_inventory,
           product_status: data.product_status,
           product_variant_id: data?.product_variant_id || undefined,
+          id: data?.product_variant_id || undefined,
           product_id: parseInt(data.price),
           price: data.price,
           mrp: data.mrp,
@@ -150,7 +151,7 @@ const createCartOperationThunk = (name: string, apiCall: (data: any) => Promise<
         return { product_uid: data.product_uid, isGuest: true };
       }
 
-      try {
+      try {        
         const response = await apiCall(data);
         if (!response.success) {
           return rejectWithValue(response.message || errorMessage);
@@ -193,6 +194,7 @@ export const syncGuestCart = createAsyncThunk(
           track_inventory: item.track_inventory,
           product_status: item.product_status,
           product_id: parseInt(item.price),
+          id: item.product_variant_id,
           slug: 'CART',
           mrp: item.mrp,
           price: item.price,
@@ -258,7 +260,7 @@ const cartSlice = createSlice({
         if (action.payload.isGuest) {
           const existingItem = state.guestItems.find(
             item => item.product_uid === action.payload.product_uid &&
-            item.product_variant_id === action.payload.product_variant_id || null
+            (item.product_variant_id || null) === (action.payload.product_variant_id || null)
           );
 
           if (existingItem) {
@@ -276,7 +278,8 @@ const cartSlice = createSlice({
               category_uid: action.payload.category_uid,
               min_order_quantity: action.payload.min_order_quantity,
               stock: action.payload.stock,
-              product_variant_id: action.payload.product_variant_id || null
+              product_variant_id: action.payload.product_variant_id || null,
+              product_variant_text: action.payload.product_variant_text || undefined
             });
           }
           updateGuestCart(state, state.guestItems);

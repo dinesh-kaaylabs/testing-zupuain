@@ -11,6 +11,7 @@ export const getItemInfo = (item: BagDetail | CartItem) => {
     productUid: item.product_uid,
     productCount: item.product_count,
     bagDetailId: isBag ? item.bag_detail_id : undefined,
+    productVariantId: isBag ? item.product_variant_id : undefined,
     price, mrp, product,
     name: isBag ? product?.product_name || 'Product' : item.product_name,
     image: isBag ? product?.product_image?.[0]?.product_image : item.product_image,
@@ -45,7 +46,7 @@ export const getProductDisplayDetails = (item: BagDetail | CartItem) => {
 export const getCartItemInfo = (item: BagDetail | CartItem) => {
   const info = getItemInfo(item);
   return { productUid: info.productUid, productCount: info.productCount, bagDetailId: info.bagDetailId,
-    price: info.price, mrp: info.mrp, product: info.product };
+    price: info.price, mrp: info.mrp, product: info.product, productVariantId: info.productVariantId };
 };
 
 export const getProductDetails = (item: BagDetail | CartItem) => {

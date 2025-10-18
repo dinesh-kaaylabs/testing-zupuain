@@ -106,9 +106,9 @@ interface UseCartReturn {
   couponStats: CouponStats;
   
   // Cart actions
-  handleIncrement: (uid: string, id?: number) => void;
-  handleDecrement: (uid: string, id?: number) => void;
-  handleRemove: (uid: string, id?: number) => void;
+  handleIncrement: (uid: string, productVariantId?: string) => void;
+  handleDecrement: (uid: string, productVariantId?: string) => void;
+  handleRemove: (uid: string, productVariantId?: string) => void;
   handleMoveToWishlist: (uid: string) => Promise<void>;
   handleCheckout: () => void;
   
@@ -240,13 +240,13 @@ export const useCart = (): UseCartReturn => {
   }, [isAuthenticated, guestItems.length, defaultStore, dispatch, success, showError]);
   const handleCartAction = useCallback(async (
     action: typeof incrementQuantity | typeof decrementQuantity | typeof removeFromCart,
-    productUid: string, bagDetailId?: number, successMsg?: string
+    productUid: string, productVariantId?: string, successMsg?: string
   ) => {
     if (!defaultStore?.store_uid) return;
     setIsUpdating(true);
     try {
       await dispatch(action({
-        product_uid: productUid, bag_detail_id: bagDetailId,
+        product_uid: productUid, product_variant_id: productVariantId,
         slug: 'CART', store_uid: defaultStore.store_uid,
       })).unwrap();
       if (!isGuest) await dispatch(fetchBag(defaultStore.store_uid)).unwrap();
@@ -258,14 +258,14 @@ export const useCart = (): UseCartReturn => {
       setIsUpdating(false);
     }
   }, [dispatch, defaultStore, isGuest, success, showError]);
-  const handleIncrement = useCallback((uid: string, id?: number) => 
-    handleCartAction(incrementQuantity, uid, id), [handleCartAction]);
+  const handleIncrement = useCallback((uid: string, productVariantId?: string) => 
+    handleCartAction(incrementQuantity, uid, productVariantId), [handleCartAction]);
 
-  const handleDecrement = useCallback((uid: string, id?: number) => 
-    handleCartAction(decrementQuantity, uid, id), [handleCartAction]);
+  const handleDecrement = useCallback((uid: string, productVariantId?: string) => 
+    handleCartAction(decrementQuantity, uid, productVariantId), [handleCartAction]);
 
-  const handleRemove = useCallback((uid: string, id?: number) => 
-    handleCartAction(removeFromCart, uid, id, 'Item removed from cart'), [handleCartAction]);
+  const handleRemove = useCallback((uid: string, productVariantId?: string) => 
+    handleCartAction(removeFromCart, uid, productVariantId, 'Item removed from cart'), [handleCartAction]);
   const handleMoveToWishlist = useCallback(async (uid: string): Promise<void> => {
     if (!defaultStore?.store_uid || isGuest) {
       showError('Unable to move item to wishlist');
@@ -283,7 +283,7 @@ export const useCart = (): UseCartReturn => {
     }
     try {
       await dispatch(addToWishlist(product)).unwrap();
-      await handleRemove(uid, 'bag_detail_id' in cartItem ? cartItem.bag_detail_id : undefined);
+      await handleRemove(uid, 'product_variant_id' in cartItem ? String(cartItem.product_variant_id) : undefined);
       success('Item moved to wishlist!');
     } catch {
       showError('Failed to move item to wishlist');

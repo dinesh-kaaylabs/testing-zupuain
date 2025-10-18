@@ -9,6 +9,7 @@ interface AddToCartRequest extends Record<string, unknown> {
     track_inventory: boolean;
     product_status: boolean;
     product_id: number;
+    id?: string;
     product_variant_id?: string;
     price: string;
     mrp: string;
@@ -58,6 +59,7 @@ export const cartApi = {
 
   async incrementQuantity(data: {
     product_uid: string;
+    product_variant_id?: string;
     slug: string;
     store_uid: string;
   }): Promise<ApiResponse<{ success: boolean }>> {
